@@ -431,9 +431,9 @@ cudaError_t TestCutlassGemm(int M, int N, int K, float alpha, float beta) {
   // Test for bit equivalence of results.
   //
 
-  for(std::vector<float>::iterator it = host_cutlass.begin(); it != host_cutlass.end(); it++){
-      printf("value = %0.2f\n", *it);
-  }
+//  for(std::vector<float>::iterator it = host_cutlass.begin(); it != host_cutlass.end(); it++){
+//      printf("value = %0.2f\n", *it);
+//  }
   if (host_cutlass != host_reference) {
     std::cerr << "CUTLASS results incorrect." << std::endl;
 

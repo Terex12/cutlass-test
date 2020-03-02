@@ -29,6 +29,7 @@
 
 #pragma once
 #include <cstdio>
+#include <iostream>
 #include "cutlass/cutlass.h"
 
 #include "cutlass/gemm/gemm.h"
@@ -205,8 +206,8 @@ struct Gemm {
     // Compute threadblock-scoped matrix multiply-add
     int gemm_k_iterations = (problem_size_k - tb_offset_A.column() + Mma::Shape::kK - 1) / Mma::Shape::kK;
 
-    printf("show me the tb_offset_A second\n", tb_offset_A.column());
-    printf("show me the tb_offset_B first\n", tb_offset_B.row());
+    printf("show me gemm_k_iterations %d\n", gemm_k_iterations);
+    printf("show me the tb_offset_B first %d\n", (int32_t)tb_offset_B.row());
 
     // Compute position within threadblock
     int thread_idx = threadIdx.x;
