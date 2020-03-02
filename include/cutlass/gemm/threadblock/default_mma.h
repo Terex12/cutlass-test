@@ -144,7 +144,7 @@ struct DefaultMma<ElementA, LayoutA, kAlignmentA, ElementB, LayoutB,
 };
 
 
-/// Specialization for row-major output (OperatorClass Simt)
+/// Specialization for row-major output (OperatorClass OpClassTensorOp)
 template <
     /// Element type for A matrix operand
     typename ElementA,

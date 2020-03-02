@@ -83,7 +83,7 @@ template <
   /// Used for partial specialization
   typename Enable = bool
 >
-class MmaPipelined : public MmaBase<Shape_, Policy_, 2> {
+class MmaPipelined : public MmaBase<Shape_, Policy_, 2> {   ///see default_mma.h using ThreadblockMma
 public:
 
   ///< Base class
@@ -95,6 +95,7 @@ public:
   using ElementC = ElementC_;       ///< Data type of accumulator matrix
   using LayoutC = LayoutC_;         ///< Layout of accumulator matrix
   using Policy = Policy_;           ///< Policy describing tuning details
+                                    /// actual policy in gemm exmaple is typename MmaCore::MmaPolicy form defualt_mma.h
 
   using SmemIteratorA = SmemIteratorA_;
   using SmemIteratorB = SmemIteratorB_;
@@ -116,7 +117,8 @@ public:
   using FragmentC = typename Policy::Operator::FragmentC;
 
   /// Warp-level Mma
-  using Operator = typename Policy::Operator;
+  using Operator = typename Policy::Operator;   ///passing from outside call
+  ///policy decide lowe mma
 
   // staticaly assert kStages for MmaPipelined is two (Double-buffered pipeline)
   static_assert((Base::kStages==2), "MmaPipelined requires kStages set to value 2");
@@ -205,6 +207,7 @@ public:
     __syncthreads();
 
     // Pair of fragments used to overlap shared memory loads and math instructions
+    //double buffering
     WarpFragmentA warp_frag_A[2];
     WarpFragmentB warp_frag_B[2];
 
@@ -217,7 +220,7 @@ public:
     ++this->warp_tile_iterator_A_;
     ++this->warp_tile_iterator_B_;
 
-    Operator warp_mma;
+    Operator warp_mma; /// see line 119 Warp-level Mma
 
     int smem_write_stage_idx = 1;
 

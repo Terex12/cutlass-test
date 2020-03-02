@@ -23,35 +23,62 @@
  *
  **************************************************************************************************/
 /*! \file
-    \brief Template for generic CUTLASS kernel.
+    \brief Templates exposing architecture support for warp-level multiply-add operations
 */
 
 #pragma once
 
-#include <cstdio>
 #include "cutlass/cutlass.h"
-////////////////////////////////////////////////////////////////////////////////
+#include "cutlass/array.h"
+#include "cutlass/numeric_types.h"
+#include "cutlass/gemm/gemm.h"
+#include "cutlass/arch/mma.h"
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace cutlass {
+namespace gemm {
+namespace thread {
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Generic CUTLASS kernel template.
-template <typename Operator>
-__global__
-void Kernel(typename Operator::Params params) {
-  // Dynamic shared memory base pointer
-  extern __shared__ int SharedStorageBase[];
+/// Structure to compute the matrix product
+template <
+  /// Size of the Gemm problem - concept: gemm::GemmShape<>
+  typename Shape,
+  /// Data type of A elements
+  typename ElementA,
+  /// Layout of A matrix (concept: MatrixLayout)
+  typename LayoutA,
+  /// Data type of B elements
+  typename ElementB,
+  /// Layout of B matrix (concept: MatrixLayout)
+  typename LayoutB,
+  /// Element type of C matrix
+  typename ElementC,
+  /// Layout of C matrix (concept: MatrixLayout)
+  typename LayoutC,
+  /// Concept: arch::OpMultiplyAdd or arch::Mma<>
+  typename Operator = arch::OpMultiplyAdd,
+  /// Used for partial specialization
+  typename Enable = bool
+>
+struct Mma;
 
-  // Declare pointer to dynamic shared memory.
-  typename Operator::SharedStorage *shared_storage =
-      reinterpret_cast<typename Operator::SharedStorage *>(SharedStorageBase);
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
-  Operator op;
-  //printf("Before launch kernel\n");
-  op(params, *shared_storage);
-}
+} // namespace thread
+} // namespace gemm
+} // namespace cutlass
 
-////////////////////////////////////////////////////////////////////////////////
-} /// namespace cutlass
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
+//
+// Overloads specialized for existing architectures
+//
+
+#include "cutlass/gemm/thread/mma_sm50.h"
+#include "cutlass/gemm/thread/mma_sm60.h"
+#include "cutlass/gemm/thread/mma_sm61.h"
+
+/////////////////////////////////////////////////////////////////////////////////////////////////

@@ -93,13 +93,14 @@ cudaError_t CutlassSgemmNN(
   // To view the full gemm device API interface, see `cutlass/gemm/device/gemm.h`
 
   using ColumnMajor = cutlass::layout::ColumnMajor;
+  using RowMajor = cutlass::layout::RowMajor;
 
   using CutlassGemm = cutlass::gemm::device::Gemm<float,        // Data-type of A matrix
-                                                  ColumnMajor,  // Layout of A matrix
+                                                  RowMajor,  // Layout of A matrix
                                                   float,        // Data-type of B matrix
-                                                  ColumnMajor,  // Layout of B matrix
+                                                  RowMajor,  // Layout of B matrix
                                                   float,        // Data-type of C matrix
-                                                  ColumnMajor>; // Layout of C matrix
+                                                  RowMajor>; // Layout of C matrix
 
   // Define a CUTLASS GEMM type
   CutlassGemm gemm_operator;
@@ -430,6 +431,9 @@ cudaError_t TestCutlassGemm(int M, int N, int K, float alpha, float beta) {
   // Test for bit equivalence of results.
   //
 
+  for(std::vector<float>::iterator it = host_cutlass.begin(); it != host_cutlass.end(); it++){
+      printf("value = %0.2f\n", *it);
+  }
   if (host_cutlass != host_reference) {
     std::cerr << "CUTLASS results incorrect." << std::endl;
 
@@ -454,7 +458,7 @@ int main(int argc, const char *arg[]) {
   //
 
   // GEMM problem dimensions.
-  int problem[3] = { 128, 128, 128 };
+  int problem[3] = { 4, 4, 4 };
 
   for (int i = 1; i < argc && i < 4; ++i) {
     std::stringstream ss(arg[i]);

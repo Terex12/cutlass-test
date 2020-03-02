@@ -59,7 +59,8 @@ foreach(EXAMPLE
   05_batched_gemm
   06_splitK_gemm
   07_volta_tensorop_gemm
-  08_turing_tensorop_gemm)
+  08_turing_tensorop_gemm
+  )
 
   add_subdirectory(${EXAMPLE})
   add_dependencies(cutlass_examples ${EXAMPLE})

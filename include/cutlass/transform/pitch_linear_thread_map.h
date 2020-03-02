@@ -95,6 +95,8 @@ struct PitchLinearStripminedThreadMap {
   };
 
   /// Number of iterations by each thread
+  ///case 1, Input Tile is thin, and thread can use to load in y dimension,
+  /// case 2 Input Tile is wide, need multiple TB to load in x dimension
   using Iterations = typename platform::conditional<
     Threads >= Detail::ShapeVec::kContiguous,
     layout::PitchLinearShape<

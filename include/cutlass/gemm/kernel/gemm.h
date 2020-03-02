@@ -28,7 +28,7 @@
 */
 
 #pragma once
-
+#include <cstdio>
 #include "cutlass/cutlass.h"
 
 #include "cutlass/gemm/gemm.h"
@@ -108,10 +108,11 @@ struct Gemm {
       ref_D(ref_D),
       output_op(output_op),
       semaphore(semaphore) {
-
+        /// ceil (k/ Tile_k)
       int total_gemm_k_iterations = (problem_size.k() + Mma::Shape::kK - 1) / Mma::Shape::kK;
+
       int gemm_k_iterations = (total_gemm_k_iterations + grid_tiled_shape.k() - 1) / grid_tiled_shape.k();
-      
+        /// extent of K
       gemm_k_size = gemm_k_iterations * Mma::Shape::kK;
     }
   };
@@ -170,6 +171,7 @@ struct Gemm {
   /// Executes one GEMM
   CUTLASS_DEVICE
   void operator()(Params const &params, SharedStorage &shared_storage) {
+      //printf("Kernel level launching kernel\n");
 
     // Compute threadblock location
     ThreadblockSwizzle threadblock_swizzle;
@@ -184,6 +186,7 @@ struct Gemm {
     }
 
     // Compute initial location in logical coordinates
+    ///2d location in Input based on Tm and (1* K) ??
     cutlass::MatrixCoord tb_offset_A{
       threadblock_tile_offset.m() * Mma::Shape::kM,
       threadblock_tile_offset.k() * params.gemm_k_size,
@@ -201,6 +204,9 @@ struct Gemm {
 
     // Compute threadblock-scoped matrix multiply-add
     int gemm_k_iterations = (problem_size_k - tb_offset_A.column() + Mma::Shape::kK - 1) / Mma::Shape::kK;
+
+    printf("show me the tb_offset_A second\n", tb_offset_A.column());
+    printf("show me the tb_offset_B first\n", tb_offset_B.row());
 
     // Compute position within threadblock
     int thread_idx = threadIdx.x;
@@ -229,7 +235,7 @@ struct Gemm {
 
     // Construct thread-scoped matrix multiply
     Mma mma(shared_storage.main_loop, thread_idx, warp_idx, lane_idx);
-
+    //include/cutlass/gemm/threadblock/mma_pipelined.h-- constructor
     typename Mma::FragmentC accumulators;
 
     accumulators.clear();

@@ -28,6 +28,7 @@
 
 #pragma once
 
+#include <cstdio>
 #include "cutlass/cutlass.h"
 #include "cutlass/numeric_types.h"
 #include "cutlass/arch/arch.h"
@@ -371,6 +372,9 @@ public:
     // Determine grid shape
     ThreadblockSwizzle threadblock_swizzle;
 
+    /// dim3 grid config
+    ///(problem_size.m() + tile_size.m() - 1) / tile_size.m(),
+    ///(problem_size.n() + tile_size.n() - 1) / tile_size.n(),
     cutlass::gemm::GemmCoord grid_shape = threadblock_swizzle.get_tiled_shape(
       args.problem_size, 
       {ThreadblockShape::kM, ThreadblockShape::kN, ThreadblockShape::kK},
@@ -459,7 +463,7 @@ public:
         return Status::kErrorInternal;
       }
     }
-
+    //printf("Device level launch kernel\n");
     cutlass::Kernel<GemmKernel><<<grid, block, smem_size, stream>>>(params_);
 
     result = cudaGetLastError();
@@ -477,7 +481,6 @@ public:
     Arguments const &args, 
     void *workspace = nullptr, 
     cudaStream_t stream = nullptr) {
-    
     Status status = initialize(args, workspace);
     
     if (status == Status::kSuccess) {
@@ -696,7 +699,6 @@ public:
     Arguments const &args, 
     void *workspace = nullptr, 
     cudaStream_t stream = nullptr) {
-    
     Status status = initialize(args, workspace);
     
     if (status == Status::kSuccess) {
