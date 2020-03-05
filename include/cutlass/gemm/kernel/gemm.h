@@ -205,11 +205,7 @@ struct Gemm {
     // Compute threadblock-scoped matrix multiply-add
     int gemm_k_iterations = (problem_size_k - tb_offset_A.column() + Mma::Shape::kK - 1) / Mma::Shape::kK;
     ///Yufan:
-//    printf("show me gemm_k_iterations %d\n", gemm_k_iterations);
-//    printf("threadblock_tile_offset.k() : %d\n", threadblock_tile_offset.k());
-//    printf("params.gemm_k_size : %d\n", params.gemm_k_size);
-//    printf("params.problem_size.k() : %d\n", params.problem_size.k());
-//    printf("show me the tb_offset_A first %d\n", tb_offset_A.row());
+
    printf("Tile M %d, Tile N %d, Tile K %d \n ", Mma::Shape::kM, Mma::Shape::kN, Mma::Shape::kK);
 
     // Compute position within threadblock
@@ -246,6 +242,7 @@ struct Gemm {
 
     if (!kSplitKSerial || gemm_k_iterations > 0) {
       // Compute threadblock-scoped matrix multiply-add
+      ///Yufan: include/cutlass/gemm/kernel/gemm.h mma_pipline.h
       mma(gemm_k_iterations, accumulators, iterator_A, iterator_B, accumulators);
     }
 

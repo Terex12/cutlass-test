@@ -106,6 +106,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
   static int const kPredicatesPerByte = 4;
   static int const kPredicatesPerWord = 4 * kPredicatesPerByte;
 
+  ///Yufan:
   //see include/cutlass/transform/pitch_linear_thread_map.h line 100 based on
   //mma_core_*.h line 154 layout::PitchLinearShape<Shape::kM, Shape::kK>,
   static int const kPredicateCount = ThreadMap::Iterations::kCount * kAccessesPerVector;
@@ -117,6 +118,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
 
   static unsigned const kPredicateMask = (1u << kPredicatesPerByte) - 1u;
 
+  ///Yufan: only can check 128 bit predicate??
   static_assert(kPredicateWordCount <= 4, "Too many predicates.");
 
   /// Predicate vector stores mask to guard accesses
@@ -223,7 +225,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
     for (int i = 0; i < kPredicateWordCount; ++i) {
       predicates_[i] = 0u;
     }
-
+    ///Yufan: total element each thread need to access
     for (int access_idx = 0; access_idx < ThreadMap::Iterations::kCount * kAccessesPerVector; ++access_idx) {
 
       int s = access_idx / (ThreadMap::Iterations::kContiguous * kAccessesPerVector);
@@ -242,8 +244,10 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
 
       if (is_steady_state) {
         if (kAdvanceRank == 0) {
+            ///Yufan: in row major last row case
           guard = (coord.strided() < extent.strided());
         } else {
+            ///Yufan: in row major last col case
           guard = (coord.contiguous() < extent.contiguous());
         }
       } else {
@@ -259,7 +263,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
       int bit_idx = residual % kPredicatesPerByte;
       
       predicates_[word_idx] |= (unsigned(guard) << (byte_idx * 8 + bit_idx));
-
+      ///Yufan: print predicate???
     }
 
   }
@@ -287,7 +291,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
           
     TensorCoord residue_extent;
     if (kAdvanceRank) {
-        //strided dimension
+      ///Yufan:strided dimension
       Index residue_size = (extent_[kAdvanceRank] % Shape::kStrided);
       if (!residue_size) {
         residue_size = Shape::kStrided;
@@ -304,7 +308,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
 //      printf("off_set %d, Shape::kStrided %d, residue_size : %d \n ", extent_.contiguous(), Shape::kStrided, residue_size);
 
     } else {
-        //continuous dimension
+      ///Yufan: continuous dimension
       Index residue_size = (extent_[kAdvanceRank] % Shape::kContiguous);
       if (!residue_size) {
         residue_size = Shape::kContiguous;
@@ -354,6 +358,9 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
     iteration_contiguous_ = residual_access % ThreadMap::Iterations::kContiguous;
     iteration_strided_ = residual_access / ThreadMap::Iterations::kContiguous;
 
+    ///Yufan: why do this? set as 0 ??
+    printf("iteration_contiguous_ %d, iteration_strided_ %d \n ", iteration_contiguous_, iteration_strided_);
+
   }
 
   /// Adds a pointer offset in units of Element
@@ -391,6 +398,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
         pointer_ += Shape::kStrided * tile_offset.strided();
       }
     }
+    ///Yufan: once this func is called, no more residule tile
     is_residue_tile_ = false;
   }
 
@@ -627,6 +635,8 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::ColumnMajor,
 
   /// Advances an iterator along logical dimensions of matrix in units of whole
   /// tiles
+
+  ///Yufan: called from predicted_tile_it.h line 259
   CUTLASS_HOST_DEVICE
   void add_tile_offset(TensorCoord const &tile_offset) {
     iterator_.add_tile_offset({tile_offset.row(), tile_offset.column()});

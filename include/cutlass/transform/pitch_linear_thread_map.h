@@ -95,6 +95,7 @@ struct PitchLinearStripminedThreadMap {
   };
 
   /// Number of iterations by each thread
+  ///Yufan:
   /// how many times of a TB finish loading
   /// case 1, Input Tile is thin, and thread can use to load in y dimension,
   /// case 2 Input Tile is wide, need multiple TB to load in x dimension
@@ -113,7 +114,7 @@ struct PitchLinearStripminedThreadMap {
   /// Interval between accesses along each dimension of the tensor's logical coordinate space
   /// (in units of Elements)
 
-  /// think it as repeated TB maybe not correct ??
+  ///Yufan: think it as repeated TB maybe not correct ??
   using Delta = typename platform::conditional<
     Threads >= Detail::ShapeVec::kContiguous,
     layout::PitchLinearShape<
