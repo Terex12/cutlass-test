@@ -405,6 +405,7 @@ public:
   using AccessType = typename UnderlyingIterator::AccessType;
 
   /// Fragment object to be loaded or stored
+  /// Yufan: size of load is defined here and related to thread number and per thread ele
   using Fragment = cutlass::Array<Element, ThreadMap::Iterations::kCount * ThreadMap::kElementsPerAccess>;
 
   /// Predicate vector stores mask to guard accesses

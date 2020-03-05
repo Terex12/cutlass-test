@@ -97,6 +97,9 @@ public:
   using Policy = Policy_;           ///< Policy describing tuning details
                                     /// actual policy in gemm exmaple is typename MmaCore::MmaPolicy form defualt_mma.h
 
+
+  /// Yufan: see it in MMaCore
+  /// specialize in default_mma.h
   using SmemIteratorA = SmemIteratorA_;
   using SmemIteratorB = SmemIteratorB_;
 
@@ -108,6 +111,11 @@ public:
   //
 
   /// Fragment of operand A loaded from global memory
+  /// Yufan: specialize in default_mma.h but real one is in predicated tile iterator
+    /// Fragment object to be loaded or stored
+    /// using Fragment = cutlass::Array<Element, ThreadMap::Iterations::kCount *
+    /// ThreadMap::kElementsPerAccess>;
+
   using FragmentA = typename IteratorA::Fragment;
 
   /// Fragment of operand B loaded from global memory
@@ -117,7 +125,9 @@ public:
   using FragmentC = typename Policy::Operator::FragmentC;
 
   /// Warp-level Mma
-  using Operator = typename Policy::Operator;   ///passing from outside call
+  using Operator = typename Policy::Operator;
+  ///Yufan: policy is from mma_core/ see MmaSimtPolicy
+  ///passing from outside call
   ///policy decide lowe mma
 
   // staticaly assert kStages for MmaPipelined is two (Double-buffered pipeline)
@@ -163,6 +173,7 @@ public:
     int warp_idx_n = warp_idx_mn / Base::WarpCount::kM;
 
     // Add per-warp offsets in units of warp-level tiles
+    ///Yufan: Base::kWarpGemmIterations is ??
     this->warp_tile_iterator_A_.add_tile_offset({warp_idx_m, Base::kWarpGemmIterations * warp_idx_k});
     this->warp_tile_iterator_B_.add_tile_offset({Base::kWarpGemmIterations * warp_idx_k, warp_idx_n});
   }
@@ -195,6 +206,7 @@ public:
     iterator_A.load(tb_frag_A);
     iterator_B.load(tb_frag_B);
 
+    ///Yufan: from residual to full
     ++iterator_A;
     ++iterator_B;
 

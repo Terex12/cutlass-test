@@ -203,9 +203,9 @@ struct Gemm {
       (threadblock_tile_offset.k() + 1) * params.gemm_k_size);
 
     // Compute threadblock-scoped matrix multiply-add
+    ///Yufan: How many tiles in reduction K
     int gemm_k_iterations = (problem_size_k - tb_offset_A.column() + Mma::Shape::kK - 1) / Mma::Shape::kK;
     ///Yufan:
-
    printf("Tile M %d, Tile N %d, Tile K %d \n ", Mma::Shape::kM, Mma::Shape::kN, Mma::Shape::kK);
 
     // Compute position within threadblock
