@@ -372,6 +372,7 @@ public:
     // Determine grid shape
     ThreadblockSwizzle threadblock_swizzle;
 
+    ///Yufan:
     /// dim3 grid config
     ///(problem_size.m() + tile_size.m() - 1) / tile_size.m(),
     ///(problem_size.n() + tile_size.n() - 1) / tile_size.n(),
@@ -442,9 +443,9 @@ public:
 
     dim3 grid = threadblock_swizzle.get_grid_shape(params_.grid_tiled_shape);
     dim3 block(GemmKernel::kThreadCount, 1, 1);
-
-    printf("grid dim %d, %d, %d", params_.grid_tiled_shape.n(), params_.grid_tiled_shape.m(), params_.grid_tiled_shape.k());
-    printf("block dim %d, %d, %d", GemmKernel::kThreadCount, 1, 1);
+    ///Yufan:
+    printf("grid dim %d, %d, %d \n", params_.grid_tiled_shape.n(), params_.grid_tiled_shape.m(), params_.grid_tiled_shape.k());
+    printf("block dim %d, %d, %d \n", GemmKernel::kThreadCount, 1, 1);
 
     cudaError_t result;
 

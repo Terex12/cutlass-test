@@ -66,7 +66,7 @@ struct Gemm {
   struct Params {
     cutlass::gemm::GemmCoord problem_size;
     cutlass::gemm::GemmCoord grid_tiled_shape;
-    typename Mma::IteratorA::Params params_A;   ///ctor Params(Layout const &layout)
+    typename Mma::IteratorA::Params params_A;   ///Yufan: ctor Params(Layout const &layout)
     typename Mma::IteratorA::TensorRef ref_A;
     typename Mma::IteratorB::Params params_B;
     typename Mma::IteratorB::TensorRef ref_B;
@@ -109,11 +109,11 @@ struct Gemm {
       ref_D(ref_D),
       output_op(output_op),
       semaphore(semaphore) {
-        /// ceil (k/ Tile_k)
+      ///Yufan: ceil (k/ Tile_k)
       int total_gemm_k_iterations = (problem_size.k() + Mma::Shape::kK - 1) / Mma::Shape::kK;
-        //value is same as total_gemm_k_iterations because grid_tiled_shape.k() == 1
+      ///Yufan:value is same as total_gemm_k_iterations because grid_tiled_shape.k() == 1
       int gemm_k_iterations = (total_gemm_k_iterations + grid_tiled_shape.k() - 1) / grid_tiled_shape.k();
-        /// extent of K== problem_size.k()
+      ///Yufan: extent of K == problem_size.k()
       gemm_k_size = gemm_k_iterations * Mma::Shape::kK;
     }
   };
@@ -204,23 +204,24 @@ struct Gemm {
 
     // Compute threadblock-scoped matrix multiply-add
     int gemm_k_iterations = (problem_size_k - tb_offset_A.column() + Mma::Shape::kK - 1) / Mma::Shape::kK;
-
+    ///Yufan:
 //    printf("show me gemm_k_iterations %d\n", gemm_k_iterations);
 //    printf("threadblock_tile_offset.k() : %d\n", threadblock_tile_offset.k());
-//      printf("params.gemm_k_size : %d\n", params.gemm_k_size);
-//      printf("params.problem_size.k() : %d\n", params.problem_size.k());
+//    printf("params.gemm_k_size : %d\n", params.gemm_k_size);
+//    printf("params.problem_size.k() : %d\n", params.problem_size.k());
 //    printf("show me the tb_offset_A first %d\n", tb_offset_A.row());
+   printf("Tile M %d, Tile N %d, Tile K %d \n ", Mma::Shape::kM, Mma::Shape::kN, Mma::Shape::kK);
 
     // Compute position within threadblock
     int thread_idx = threadIdx.x;
 
     // Construct iterators to A and B operands
     typename Mma::IteratorA iterator_A(
-      params.params_A,  /// Precomputed parameters object --> layout
-      params.ref_A.data(),  /// Pointer to start of tensor
-      {params.problem_size.m(), problem_size_k}, /// Extent of tensor
+      params.params_A,  ///Yufan: Precomputed parameters object --> layout
+      params.ref_A.data(),  ///Yufan: Pointer to start of tensor
+      {params.problem_size.m(), problem_size_k}, ///Yufan: Extent of tensor
       thread_idx,
-      tb_offset_A); /// Initial offset of threadblock
+      tb_offset_A); ///Yufan: Initial offset of threadblock
 
     typename Mma::IteratorB iterator_B(
       params.params_B,
@@ -238,7 +239,7 @@ struct Gemm {
 
     // Construct thread-scoped matrix multiply
     Mma mma(shared_storage.main_loop, thread_idx, warp_idx, lane_idx);
-    //include/cutlass/gemm/threadblock/mma_pipelined.h-- constructor
+    ///Yufan:include/cutlass/gemm/threadblock/mma_pipelined.h-- constructor
     typename Mma::FragmentC accumulators;
 
     accumulators.clear();

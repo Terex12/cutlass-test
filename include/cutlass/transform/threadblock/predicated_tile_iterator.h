@@ -590,7 +590,7 @@ public:
     layout::PitchLinearShape<Shape::kColumn, Shape::kRow>,
     Element,
     layout::PitchLinear,
-    (kAdvanceRank == 0 ? 1 : 0),
+    (kAdvanceRank == 0 ? 1 : 0),    ///Yufan: convert to real situation based on Row/Col major
     ThreadMap,
     AccessSize
   >;

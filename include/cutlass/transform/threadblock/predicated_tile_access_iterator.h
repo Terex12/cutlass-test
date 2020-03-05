@@ -287,7 +287,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
           
     TensorCoord residue_extent;
     if (kAdvanceRank) {
-
+        //strided dimension
       Index residue_size = (extent_[kAdvanceRank] % Shape::kStrided);
       if (!residue_size) {
         residue_size = Shape::kStrided;
@@ -299,8 +299,12 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
         min(threadblock_offset.strided() + residue_offset_.strided(), extent_.strided())
       );
 
+//      printf("extent_[kAdvanceRank] %d, Shape::kStrided %d, residue_size : %d \n ", extent_[kAdvanceRank], Shape::kStrided, residue_size);
+//      printf("extent_.strided() : %d\n", extent_.strided());
+//      printf("off_set %d, Shape::kStrided %d, residue_size : %d \n ", extent_.contiguous(), Shape::kStrided, residue_size);
+
     } else {
-      
+        //continuous dimension
       Index residue_size = (extent_[kAdvanceRank] % Shape::kContiguous);
       if (!residue_size) {
         residue_size = Shape::kContiguous;
@@ -316,6 +320,8 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
     thread_offset_ = threadblock_offset + ThreadMap::initial_offset(thread_id);
 
     // update internal pointers
+    ///Yufan: how to handle 4d in pitched linear ??
+
     Layout layout(params_.stride_);
     add_pointer_offset(layout(thread_offset_));
 
