@@ -131,6 +131,7 @@ struct GemmIdentityThreadblockSwizzle {
     int block_idx_x = RematerializeBlockIdxX();
     int block_idx_y = RematerializeBlockIdxY();
 
+    /// RematerializeBlockIdxZ == 0 because z dimension length is 1
     return GemmCoord{
       (block_idx_x / kTile),
       (block_idx_y * kTile) + (block_idx_x % kTile),

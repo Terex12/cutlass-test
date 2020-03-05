@@ -219,7 +219,7 @@ class Gemm {
 
   using ElementA = ElementA_;
   using LayoutA = LayoutA_;
-  using TensorRefA = TensorRef<ElementA const, LayoutA>;
+  using TensorRefA = TensorRef<ElementA const, LayoutA>; //include/cutlass/tensor_ref.h:146
   using ElementB = ElementB_;
   using LayoutB = LayoutB_;
   using TensorRefB = TensorRef<ElementB const, LayoutB>;
@@ -442,6 +442,9 @@ public:
 
     dim3 grid = threadblock_swizzle.get_grid_shape(params_.grid_tiled_shape);
     dim3 block(GemmKernel::kThreadCount, 1, 1);
+
+    printf("grid dim %d, %d, %d", params_.grid_tiled_shape.n(), params_.grid_tiled_shape.m(), params_.grid_tiled_shape.k());
+    printf("block dim %d, %d, %d", GemmKernel::kThreadCount, 1, 1);
 
     cudaError_t result;
 

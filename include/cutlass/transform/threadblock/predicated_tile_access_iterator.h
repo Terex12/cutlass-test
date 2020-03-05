@@ -39,6 +39,8 @@
 
 #pragma once
 
+#include <cstdio>
+
 #include "cutlass/array.h"
 #include "cutlass/coord.h"
 #include "cutlass/cutlass.h"
@@ -96,7 +98,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
   using Pointer = Element *;
   using NonConstPointer = typename platform::remove_const<Element>::type *;
 
-  static int const kAccessesPerVector = ThreadMap::kElementsPerAccess / AccessType::kElements;
+  static int const kAccessesPerVector = ThreadMap::kElementsPerAccess / AccessType::kElements /*1 / 1*/;
   
   static_assert(!(ThreadMap::kElementsPerAccess % AccessType::kElements), 
     "Vectors implied by the thread map must be divisible by the access type.");
@@ -104,6 +106,8 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
   static int const kPredicatesPerByte = 4;
   static int const kPredicatesPerWord = 4 * kPredicatesPerByte;
 
+  //see include/cutlass/transform/pitch_linear_thread_map.h line 100 based on
+  //mma_core_*.h line 154 layout::PitchLinearShape<Shape::kM, Shape::kK>,
   static int const kPredicateCount = ThreadMap::Iterations::kCount * kAccessesPerVector;
 
   /// Number of 32b words containing predicates
@@ -148,6 +152,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
       inc_strided_ = (stride_ * ThreadMap::Delta::kStrided) *
                      sizeof_bits<Element>::value / 8;
 
+
       if (kAdvanceRank) {
         // advance along strided dimension
         inc_advance_ =
@@ -160,6 +165,9 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::PitchLinear,
       inc_next_ = inc_advance_ - (ThreadMap::Iterations::kStrided - 1) *
                                      ThreadMap::Delta::kStrided * stride_ *
                                      sizeof_bits<Element>::value / 8;
+
+      printf ("stride_ : %d inc_strided_ : %d inc_next_ : %d inc_advance_ : %d \n", stride_,
+              inc_strided_, inc_next_, inc_advance_);
     };
   };
 
@@ -558,7 +566,7 @@ class PredicatedTileAccessIterator<Shape_, Element_, layout::ColumnMajor,
     /// Construct the Params object given a pitch-linear tensor's layout
     CUTLASS_HOST_DEVICE
     Params(Layout const &layout)
-        : params_(layout::PitchLinear(layout.stride(0))){};
+        : params_(layout::PitchLinear(layout.stride(0)/*size of 1d stride*/)){};
   };
 
  private:

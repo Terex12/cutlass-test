@@ -151,7 +151,7 @@ class PredicatedTileIterator<Shape_, Element_, layout::PitchLinear, AdvanceRank,
       "Specialization for pitch-linear iterator may along advance along the "
       "contiguous(rank=0) or strided(rank=1) dimension.");
 
-  using Shape = Shape_;
+  using Shape = Shape_; ///loading tile shape
   using Element = Element_;
   using Layout = layout::PitchLinear;
   static int const kAdvanceRank = AdvanceRank;

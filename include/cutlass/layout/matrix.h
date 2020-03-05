@@ -65,7 +65,7 @@ public:
   using TensorCoord = MatrixCoord;
 
   /// Stride vector
-  using Stride = Coord<kStrideRank, Index>;
+  using Stride = Coord<kStrideRank, Index>;     ///since it is 2d , so size of Stride is one pair
 
 private:
   //
@@ -73,7 +73,7 @@ private:
   //
 
   /// Stride data member
-  Stride stride_;
+  Stride stride_;   ///stride_[0] save the info of continuous dimension size --> useful physical memory access
 
 public:
   //

@@ -158,7 +158,7 @@ __global__ void InitializeMatrix_kernel(
   int j = threadIdx.y + blockIdx.y * blockDim.y;
 
   if (i < rows && j < columns) {
-    int offset = i + j * ldm;
+    int offset = i* ldm + j ;
 
     // Generate arbitrary elements.
     int const k = 16807;
@@ -189,7 +189,7 @@ cudaError_t InitializeMatrix(float *matrix, int ldm, int rows, int columns, int 
 cudaError_t AllocateMatrix(float **matrix, int ldm, int rows, int columns, int seed = 0) {
   cudaError_t result;
 
-  size_t sizeof_matrix = sizeof(float) * ldm * columns;
+  size_t sizeof_matrix = sizeof(float) * ldm * rows;
 
   // Allocate device memory.
   result = cudaMalloc(reinterpret_cast<void **>(matrix), sizeof_matrix);
@@ -244,10 +244,12 @@ __global__ void ReferenceGemm_kernel(
     float accumulator = 0;
 
     for (int k = 0; k < K; ++k) {
-      accumulator += A[i + k * lda] * B[k + j * ldb];
+      //accumulator += A[i + k * lda] * B[k + j * ldb];
+        accumulator += A[i* lda + k ] * B[k* ldb + j ];
     }
 
-    C[i + j * ldc] = alpha * accumulator + beta * C[i + j * ldc];
+    //C[i + j * ldc] = alpha * accumulator + beta * C[i + j * ldc];
+      C[i* ldc + j ] = alpha * accumulator + beta * C[i* ldc + j ];
   }
 }
 
@@ -288,12 +290,18 @@ cudaError_t TestCutlassGemm(int M, int N, int K, float alpha, float beta) {
   //
 
   // Compute leading dimensions for each matrix.
-  int lda = M;
-  int ldb = K;
-  int ldc = M;
+//  int lda = M;
+//  int ldb = K;
+//  int ldc = M;
+
+
+  int lda = K;
+  int ldb = N;
+  int ldc = N;
 
   // Compute size in bytes of the C matrix.
-  size_t sizeof_C = sizeof(float) * ldc * N;
+  //size_t sizeof_C = sizeof(float) * ldc * N;
+    size_t sizeof_C = sizeof(float) * ldc * M;
 
   // Define pointers to matrices in GPU device memory.
   float *A;
@@ -387,8 +395,8 @@ cudaError_t TestCutlassGemm(int M, int N, int K, float alpha, float beta) {
   }
 
   // Copy to host and verify equivalence.
-  std::vector<float> host_cutlass(ldc * N, 0);
-  std::vector<float> host_reference(ldc * N, 0);
+  std::vector<float> host_cutlass(ldc * M, 0);
+  std::vector<float> host_reference(ldc * M, 0);
 
   result = cudaMemcpy(host_cutlass.data(), C_cutlass, sizeof_C, cudaMemcpyDeviceToHost);
 
@@ -458,7 +466,7 @@ int main(int argc, const char *arg[]) {
   //
 
   // GEMM problem dimensions.
-  int problem[3] = { 4, 4, 4 };
+  int problem[3] = { 128, 64, 32};
 
   for (int i = 1; i < argc && i < 4; ++i) {
     std::stringstream ss(arg[i]);
