@@ -38,12 +38,12 @@ namespace device {
         using WarpShape = GemmShape<32, 64, 8>;
         using InstructionShape = GemmShape<1, 1, 1>;
         static int const kStages = 2;
-//        using EpilogueOutputOp = epilogue::thread::LinearCombination<
-//                ElementC,
-//                1,
-//                ElementAccumulator,
-//                ElementAccumulator
-//        >;
+        using EpilogueOutputOp = epilogue::thread::LinearCombination<
+                ElementC,
+                1,
+                ElementAccumulator,
+                ElementAccumulator
+        >;
         using Operator = arch::OpMultiplyAdd;
     };
 

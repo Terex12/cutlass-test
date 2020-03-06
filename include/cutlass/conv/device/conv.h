@@ -83,8 +83,7 @@ namespace device {
         using TensorRefB = TensorRef<ElementB const, LayoutB>;
         using ElementC = ElementC_;
         using LayoutC = LayoutC_;
-        ///Yufan: no need, later remove
-        using TensorRefC = TensorRef<ElementC const, LayoutC>;
+        /*using TensorRefC = TensorRef<ElementC const, LayoutC>;*/
         using TensorRefD = TensorRef<ElementC, LayoutC>;
         using ElementAccumulator = ElementAccumulator_;
         using OperatorClass = OperatorClass_;
@@ -92,7 +91,6 @@ namespace device {
         using ThreadblockShape = ThreadblockShape_;
         using WarpShape = WarpShape_;
         using InstructionShape = InstructionShape_;
-        ///Yufan: no need, later remove
         using EpilogueOutputOp = EpilogueOutputOp_;
         using ThreadblockSwizzle = ThreadblockSwizzle_;
         using Operator = Operator_;
@@ -111,7 +109,7 @@ namespace device {
                 ElementB,
                 LayoutB,
                 kAlignmentB,
-                ElementC,
+                ElementC,  ///Yufan: a bad naming, D is using C's layout and datatype
                 LayoutC,
                 ElementAccumulator,
                 OperatorClass,
@@ -132,7 +130,7 @@ namespace device {
             GemmCoord problem_size;
             TensorRef<ElementA const, LayoutA> ref_A;
             TensorRef<ElementB const, LayoutB> ref_B;
-            TensorRef<ElementC const, LayoutC> ref_C;
+            /*TensorRef<ElementC const, LayoutC> ref_C; */
             TensorRef<ElementC, LayoutC> ref_D;
             typename EpilogueOutputOp::Params epilogue;
             int split_k_slices;
@@ -147,7 +145,8 @@ namespace device {
                     GemmCoord problem_size_,
                     TensorRef<ElementA const, LayoutA> ref_A_,
                     TensorRef<ElementB const, LayoutB> ref_B_,
-                    TensorRef<ElementC const, LayoutC> ref_C_,
+                    /*TensorRef<ElementC const, LayoutC> ref_C_,*/
+                    ///Yufan: D is the output
                     TensorRef<ElementC, LayoutC> ref_D_,
                     typename EpilogueOutputOp::Params epilogue_ =
                     typename EpilogueOutputOp::Params(),
@@ -156,7 +155,7 @@ namespace device {
                     problem_size(problem_size_),
                     ref_A(ref_A_),
                     ref_B(ref_B_),
-                    ref_C(ref_C_),
+                    /*ref_C(ref_C_),*/
                     ref_D(ref_D_),
                     epilogue(epilogue_),
                     split_k_slices(split_k_slices) {}
@@ -185,12 +184,13 @@ namespace device {
             }
 
             // Initialize the Params structure
+            ///Yufan: declare in kernel/conv.h
             params_ = typename GemmKernel::Params{
                     args.problem_size,
                     grid_shape,
                     args.ref_A.non_const_ref(),
                     args.ref_B.non_const_ref(),
-                    args.ref_C.non_const_ref(),///Yufan: C is not necessary here
+                    /*args.ref_C.non_const_ref(),///Yufan: C is not necessary here*/
                     args.ref_D,
                     args.epilogue,
                     static_cast<int *>(workspace)
