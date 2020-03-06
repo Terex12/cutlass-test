@@ -16,13 +16,14 @@
 namespace cutlass {
 namespace conv {
 namespace device {
+
     template <
             typename ArchTag,
             typename ElementA,
             typename ElementB,
             typename ElementC,
             typename ElementAccumulator>
-    struct DefaultGemmConfiguration<
+    struct DefaultConvConfiguration<
             arch::OpClassSimt,
             ArchTag,
             ElementA,
