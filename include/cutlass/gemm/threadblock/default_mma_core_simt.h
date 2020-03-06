@@ -103,7 +103,7 @@ struct DefaultMmaCore<Shape_, WarpShape_, GemmShape<1, 1, 1>, ElementA_,
                       ElementC_, LayoutC_, arch::OpClassSimt, 2, Operator_
                      > {
   using Shape = Shape_;
-  using WarpShape = WarpShape_;
+  using WarpShape = WarpShape_;     ///Yufan : I think it is logical shape
   using InstructionShape = GemmShape<1, 1, 1>;
   using ElementA = ElementA_;
   using LayoutA = layout::ColumnMajor;
@@ -135,7 +135,7 @@ struct DefaultMmaCore<Shape_, WarpShape_, GemmShape<1, 1, 1>, ElementA_,
   static int const kWarpSize = warp::WarpSize<arch::OpClassSimt>::value;
 
   /// Number of threads total
-  static int const kThreads = WarpCount::kCount * kWarpSize;
+  static int const kThreads = WarpCount::kCount/*number of warps*/ * kWarpSize;
 
   static int const kElementsPerAccess = 1;
 
@@ -203,6 +203,7 @@ struct DefaultMmaCore<Shape_, WarpShape_, GemmShape<1, 1, 1>, ElementA_,
       LaneM,
       LaneN,
       1>;
+  ///Yufan: mma_smit_policy.h
   using Policy = cutlass::gemm::warp::MmaSimtPolicy<
       cutlass::MatrixShape<WarpNumThreadsM, WarpNumThreadsN>,   // WarpShape
       cutlass::layout::RowMajorInterleaved<LaneLayout>,         // LaneLayout
@@ -210,7 +211,7 @@ struct DefaultMmaCore<Shape_, WarpShape_, GemmShape<1, 1, 1>, ElementA_,
   >;
 
   using MmaWarpSimt = cutlass::gemm::warp::MmaSimt<
-    WarpShape,    /// Size of the Gemm problem - concept: gemm::GemmShape<> 128, 128, 8
+    WarpShape,    ///No it should be warp shape
     ElementA,     /// Data type of A elements
     SmemLayoutA,  /// Layout of A matrix (concept: MatrixLayout)
     ElementB,     /// Data type of B elements
@@ -220,7 +221,8 @@ struct DefaultMmaCore<Shape_, WarpShape_, GemmShape<1, 1, 1>, ElementA_,
     Policy        /// Policy describing warp-level MmaSimtOp (concept: MmaSimtOp policy)
     >;            /// Used for partial specialization
 
-  /// Policy used to define MmaPipelined
+  ///Yufan: Policy used to define MmaPipelined
+  ///declare in mma_base.h
   using MmaPolicy = MmaPolicy<
     MmaWarpSimt,
     MatrixShape<0, 0>,
