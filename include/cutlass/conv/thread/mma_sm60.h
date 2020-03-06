@@ -31,15 +31,15 @@
 #include "cutlass/cutlass.h"
 #include "cutlass/tensor_ref.h"
 #include "cutlass/layout/matrix.h"
-#include "cutlass/gemm/gemm.h"
-#include "cutlass/gemm/thread/mma.h"
+#include "cutlass/conv/conv.h"
+#include "cutlass/conv/thread/mma.h"
 #include "cutlass/functional.h"
 #include "cutlass/reduction/thread/reduce.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace cutlass {
-namespace gemm {
+namespace conv {
 namespace thread {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,7 +48,7 @@ namespace detail {
 
 /// Structure to compute the matrix product for HFMA
 template <
-  /// Size of the Gemm problem - concept: gemm::GemmShape<>
+  /// Size of the Gemm problem - concept: conv::GemmShape<>
   typename Shape,
 
   /// Layout of A matrix (concept: MatrixLayout)
@@ -110,7 +110,7 @@ struct Mma_HFMA2 <
 
     /// Use 1x1x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      gemm::GemmShape<2,1,1>,
+      conv::GemmShape<2,1,1>,
       1,
       half_t,
       layout::ColumnMajor,
@@ -196,7 +196,7 @@ struct Mma_HFMA2<
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      gemm::GemmShape<1,2,1>,
+      conv::GemmShape<1,2,1>,
       1,
       half_t,
       layout::ColumnMajor,
@@ -286,7 +286,7 @@ struct Mma_HFMA2 <
     D = C;
 
     using Mma = arch::Mma<
-      gemm::GemmShape<2,1,1>,
+      conv::GemmShape<2,1,1>,
       1,
       half_t,
       layout::ColumnMajor,
@@ -373,7 +373,7 @@ struct Mma_HFMA2<
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      gemm::GemmShape<1,2,1>,
+      conv::GemmShape<1,2,1>,
       1,
       half_t,
       layout::ColumnMajor,
@@ -460,7 +460,7 @@ struct Mma_HFMA2 <
 
     /// Use 1x1x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      gemm::GemmShape<2,1,1>,
+      conv::GemmShape<2,1,1>,
       1,
       half_t,
       layout::RowMajor,
@@ -550,7 +550,7 @@ struct Mma_HFMA2 <
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      gemm::GemmShape<1,2,1>,
+      conv::GemmShape<1,2,1>,
       1,
       half_t,
       layout::RowMajor,
@@ -640,7 +640,7 @@ struct Mma_HFMA2 <
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      gemm::GemmShape<2,1,1>,
+      conv::GemmShape<2,1,1>,
       1,
       half_t,
       layout::RowMajor,
@@ -731,7 +731,7 @@ struct Mma_HFMA2<
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      gemm::GemmShape<1,2,1>,
+      conv::GemmShape<1,2,1>,
       1,
       half_t,
       layout::RowMajor,
@@ -816,7 +816,7 @@ struct Mma_HFMA2<
     D = C;
 
     /// Use 1x1x2 HFMA2 sequence for bulk of computation
-    using GemmShape = gemm::GemmShape<1,1,2>;
+    using GemmShape = conv::GemmShape<1,1,2>;
 
     Array<half_t, 1> *ptr_D = reinterpret_cast<Array<half_t, 1> *>(&D);
     Array<half_t, 2> const *ptr_A = reinterpret_cast<Array<half_t, 2> const *>(&A);
@@ -895,7 +895,7 @@ struct Mma_HFMA2<
     D = C;
 
     /// Use 1x1x2 HFMA2 sequence for bulk of computation
-    using GemmShape= gemm::GemmShape<1,1,2>;
+    using GemmShape= conv::GemmShape<1,1,2>;
 
     Array<half_t, 1> *ptr_D = reinterpret_cast<Array<half_t, 1> *>(&D);
     Array<half_t, 2> const *ptr_A = reinterpret_cast<Array<half_t, 2> const *>(&A);
@@ -939,7 +939,7 @@ struct Mma_HFMA2<
 
 /// Structure to compute the matrix product
 template <
-  /// Size of the Gemm problem - concept: gemm::GemmShape<>
+  /// Size of the Gemm problem - concept: conv::GemmShape<>
   typename Shape_, typename LayoutA, typename LayoutB, typename LayoutC
 >
 struct Mma<
@@ -953,7 +953,7 @@ struct Mma<
   arch::OpMultiplyAdd
   > {
 
-  /// Size of the Gemm problem - concept: gemm::GemmShape<>
+  /// Size of the Gemm problem - concept: conv::GemmShape<>
   using Shape = Shape_;
 
   /// Data type of operand A
@@ -1001,8 +1001,8 @@ struct Mma<
     // HFMA based MMA optimizations are of 2 types :
     // 1. Inner product 
     // 2. Outer product
-    // It is chosen based on LayoutC (for outer product gemm) or
-    // Using LayoutA and LayoutB or shape=1x1x2K (for inner product gemms)
+    // It is chosen based on LayoutC (for outer product conv) or
+    // Using LayoutA and LayoutB or shape=1x1x2K (for inner product convs)
     // If all fails, we choose the generic MMA
     constexpr bool use_outer_prod = (c_column_major && m_mod2) || (c_row_major && n_mod2);
     constexpr bool use_inner_prod = (a_row_major && b_column_major && k_mod2) || (Shape::kM==1 && Shape::kN==1 && k_mod2);
@@ -1043,7 +1043,7 @@ namespace detail {
 
 /// Computes matrix product when C is row-major
 template <
-  /// Size of the Gemm problem - concept: gemm::GemmShape<>
+  /// Size of the Gemm problem - concept: conv::GemmShape<>
   typename Shape_,
   typename LayoutA_,
   typename LayoutB_
@@ -1102,7 +1102,7 @@ struct Mma<
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace thread
-} // namespace gemm
+} // namespace conv
 } // namespace cutlass
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
