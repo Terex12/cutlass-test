@@ -410,6 +410,14 @@ Coord<4> make_Coord(int _0, int _1, int _2, int _3) {
   return Coord<4>(values);
 }
 
+/// Helper to make a 6-element coordinate
+///Yufan: for recording Auxiliary info like padding, stride, dilation
+CUTLASS_HOST_DEVICE
+        Coord<6> make_Coord(int _0, int _1, int _2, int _3, int _4, int _5) {
+    int values[6] = {_0, _1, _2, _3, _4, _5};
+    return Coord<6>(values);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 }  // namespace cutlass

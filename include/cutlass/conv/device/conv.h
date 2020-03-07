@@ -131,7 +131,8 @@ namespace device {
             TensorRef<ElementA const, LayoutA> ref_A;
             TensorRef<ElementB const, LayoutB> ref_B;
             /*TensorRef<ElementC const, LayoutC> ref_C; */
-            TensorRef<ElementC, LayoutC> ref_D;
+            TensorRef<ElementC, LayoutC> ref_C;
+
             typename EpilogueOutputOp::Params epilogue;
             int split_k_slices;
 
@@ -142,12 +143,12 @@ namespace device {
             /// Constructs an Arguments structure
             CUTLASS_HOST_DEVICE
             Arguments(
-                    GemmCoord problem_size_,
-                    TensorRef<ElementA const, LayoutA> ref_A_,
+                    ConvCoord problem_size_,
+                    AuxiliaryCoord aux,  ///Yufan: padding, stride, dilation
+                    TensorRef<ElementA const, LayoutA> ref_A_,      ///Yufan: layout have more than 1 stride  TensorNHWC in tensor.h
                     TensorRef<ElementB const, LayoutB> ref_B_,
                     /*TensorRef<ElementC const, LayoutC> ref_C_,*/
-                    ///Yufan: D is the output
-                    TensorRef<ElementC, LayoutC> ref_D_,
+                    TensorRef<ElementC, LayoutC> ref_C_,
                     typename EpilogueOutputOp::Params epilogue_ =
                     typename EpilogueOutputOp::Params(),
                     int split_k_slices = 1
@@ -155,8 +156,7 @@ namespace device {
                     problem_size(problem_size_),
                     ref_A(ref_A_),
                     ref_B(ref_B_),
-                    /*ref_C(ref_C_),*/
-                    ref_D(ref_D_),
+                    ref_C(ref_C_),
                     epilogue(epilogue_),
                     split_k_slices(split_k_slices) {}
         };
