@@ -95,37 +95,40 @@ cudaError_t CutlassSconvNN(
 /// Kernel to initialize a matrix with small integers.
 __global__ void InitializeMatrix_kernel(
         float *matrix,
-        int ldm,
-        int rows,
-        int columns,
+        int ldm0, int ldm1, int ldm2, int outer,
         int seed = 0) {
 
+    int third_d = ldm2/ldm1/ldm0;
+    
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
+    
+    for (int fourthD = 0; fourthD < outer; ++fourthD){
+        for(int thirdD = 0; thirdD < third_d; ++thirdD){
+            if (i < ldm0 && j < ldm1/ldm0) {
+                int offset = i+ j*ldm0 + thirdD*ldm1 + fourthD*ldm2; ///Yufan: Since 4D input 
+                // Generate arbitrary elements.
+                int const k = 16807;
+                int const m = 16;
+                float value = float(((offset + seed) * k % m) - m / 2);
 
-    if (i < rows && j < columns) {
-        int offset = i * ldm + j;
-
-        // Generate arbitrary elements.
-        int const k = 16807;
-        int const m = 16;
-        float value = float(((offset + seed) * k % m) - m / 2);
-
-        matrix[offset] = value;
+                matrix[offset] = value;
+            }
+        }
     }
 }
 
 /// Simple function to initialize a matrix to arbitrary small integers.
 
-cudaError_t InitializeMatrix(float *matrix, int ldm, int rows, int columns, int seed = 0) {
+cudaError_t InitializeMatrix(float *matrix, int ldm0, int ldm1, int ldm2, int outer, int seed = 0) {
 
     dim3 block(16, 16);
     dim3 grid(
-            (rows + block.x - 1) / block.x,
-            (columns + block.y - 1) / block.y
+            (ldm0 + block.x - 1) / block.x,
+            (ldm1/ldm0 + block.y - 1) / block.y
     );
 
-    InitializeMatrix_kernel << < grid, block >> > (matrix, ldm, rows, columns, seed);
+    InitializeMatrix_kernel << < grid, block >> > (matrix, ldm0, ldm1, ldm2, outer, seed);
 
     return cudaGetLastError();
 }
@@ -133,10 +136,10 @@ cudaError_t InitializeMatrix(float *matrix, int ldm, int rows, int columns, int 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Allocates device memory for a matrix then fills with arbitrary small integers.
-cudaError_t AllocateMatrix(float **matrix, int ldm, int rows, int columns, int seed = 0) {
+cudaError_t AllocateMatrix(float **matrix, int ldm0, int ldm1, int ldm2, int outer, int seed = 0) {
     cudaError_t result;
 
-    size_t sizeof_matrix = sizeof(float) * ldm * rows;
+    size_t sizeof_matrix = sizeof(float) * outer * ldm2;
 
     // Allocate device memory.
     result = cudaMalloc(reinterpret_cast<void **>(matrix), sizeof_matrix);
@@ -157,7 +160,7 @@ cudaError_t AllocateMatrix(float **matrix, int ldm, int rows, int columns, int s
     }
 
     // Initialize matrix elements to arbitrary small integers.
-    result = InitializeMatrix(*matrix, ldm, rows, columns, seed);
+    result = InitializeMatrix(*matrix, ldm0, ldm1, ldm2, outer, seed);
 
     if (result != cudaSuccess) {
         std::cerr << "Failed to initialize matrix: "
@@ -172,17 +175,13 @@ cudaError_t AllocateMatrix(float **matrix, int ldm, int rows, int columns, int s
 
 /// Naive reference GEMM computation.
 __global__ void ReferenceConv_kernel(
-        int M,
-        int N,
-        int K,
+        int NF, int NY, int NX, int NH, int NW, int NR, int NS, int NC,
+        int sW, int sH,
         float alpha,
-        float const *A,
-        int lda,
-        float const *B,
-        int ldb,
+        float const *A,     //Input
+        float const *B,     //Kernel
         float beta,
-        float *C,
-        int ldc) {
+        float *C) {
 
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -190,29 +189,33 @@ __global__ void ReferenceConv_kernel(
     if (i < M && j < N) {
         float accumulator = 0;
 
-        for (int k = 0; k < K; ++k) {
-            //accumulator += A[i + k * lda] * B[k + j * ldb];
-            accumulator += A[i * lda + k] * B[k * ldb + j];
-        }
+        int x = i % NX;
+        int y = i / NX;
+        int f = j % NF;
+        int n = j / NF;
 
-        //C[i + j * ldc] = alpha * accumulator + beta * C[i + j * ldc];
-        C[i * ldc + j] = alpha * accumulator + beta * C[i * ldc + j];
+        for (int c = 0; c < NC; ++c) {
+            for (int r = 0; r < NR; ++r) {
+                for (int s = 0; s < NS; ++s) {
+                    /*Output[n][k][y][x] += Input[n][c][y*StrideV+r][x*StrideH+s] * Kernel[k][c][r][s];*/
+                    C[n * NF * NY * NX + f * NY * NX + y * NX + x] +=
+                            A[n * NC * NH * NW + c * NH * NW + (y * sH + r) * NW + (x * sW + s)] *
+                            B[f * NC * NR * NS + c * NR * NS + r * NS + s];
+                }
+            }
+        }
     }
 }
 
 /// Reference GEMM computation.
 cudaError_t ReferenceConv(
-        int M,
-        int N,
-        int K,
+        int NF, int NY, int NX, int NH, int NW, int NR, int NS, int NC,
+        int sW, int sH,
         float alpha,
-        float const *A,
-        int lda,
-        float const *B,
-        int ldb,
+        float const *A,     //Input
+        float const *B,     //Kernel
         float beta,
-        float *C,
-        int ldc) {
+        float *C) {
 
     dim3 block(16, 16);
     dim3 grid(
@@ -220,7 +223,8 @@ cudaError_t ReferenceConv(
             (N + block.y - 1) / block.y
     );
 
-    ReferenceConv_kernel << < grid, block >> > (M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+    ReferenceConv_kernel << < grid, block >> > (NF, NY, NX, NH, NW, NR, NS,NC,
+            sW, sH, alpha, A, B, beta, C);
 
     return cudaGetLastError();
 }
@@ -229,7 +233,9 @@ cudaError_t ReferenceConv(
 
 /// Allocate several matrices in GPU device memory and call a single-precision
 /// CUTLASS GEMM kernel.
-cudaError_t TestCutlassConv(int M, int N, int K, float alpha, float beta) {
+cudaError_t TestCutlassConv(int NW, int NH, int NC, int NN, int NF, int NR, int NS, /*input and kernel size*/
+        int pH, int pW, int sH, int sW, int dH, int dW /*padding ...*/
+        float alpha, float beta) {
     cudaError_t result;
 
     //
@@ -237,18 +243,24 @@ cudaError_t TestCutlassConv(int M, int N, int K, float alpha, float beta) {
     //
 
     // Compute leading dimensions for each matrix.
-//  int lda = M;
-//  int ldb = K;
-//  int ldc = M;
 
 
-    int lda = K;
-    int ldb = N;
-    int ldc = N;
+    int lda0 = NW;       //first stride (FVI) along index H
+    int lda1 = NW*NH;     //second stride along index C
+    int lda2 = NC*NW*NH;   //third stride along index B
+    
+    int ldb0 = NS;
+    int ldb1 = NS*NR;
+    int ldb2 = NS*NR*NC;
+    
+    int X = (NW+2*pW-NS)/sW+1;
+    int Y = (NH+2*pH-NR)/sH+1;
+    int ldc0 = NX;
+    int ldc1 = NX*NY;
+    int ldc2 = NX*NY*NF;
 
     // Compute size in bytes of the C matrix.
-    //size_t sizeof_C = sizeof(float) * ldc * N;
-    size_t sizeof_C = sizeof(float) * ldc * M;
+    size_t sizeof_C = sizeof(float) * NX*NY*NF*NN;
 
     // Define pointers to matrices in GPU device memory.
     float *A;
@@ -260,20 +272,20 @@ cudaError_t TestCutlassConv(int M, int N, int K, float alpha, float beta) {
     // Allocate matrices in GPU device memory with arbitrary seeds.
     //
 
-    result = AllocateMatrix(&A, lda, M, K, 0);
+    result = AllocateMatrix(&A, lda0, lda1, lda2, NN, 0);
 
     if (result != cudaSuccess) {
         return result;
     }
 
-    result = AllocateMatrix(&B, ldb, K, N, 17);
+    result = AllocateMatrix(&B, ldb0, ldb1, ldb2, NF, 17);
 
     if (result != cudaSuccess) {
         cudaFree(A);
         return result;
     }
 
-    result = AllocateMatrix(&C_cutlass, ldc, M, N, 101);
+    result = AllocateMatrix(&C_cutlass, ldc0, ldc1, ldc2, NN, 101);
 
     if (result != cudaSuccess) {
         cudaFree(A);
@@ -281,7 +293,7 @@ cudaError_t TestCutlassConv(int M, int N, int K, float alpha, float beta) {
         return result;
     }
 
-    result = AllocateMatrix(&C_reference, ldc, M, N, 101);
+    result = AllocateMatrix(&C_reference, ldc0, ldc1, ldc2, NN, 101);
 
     if (result != cudaSuccess) {
         cudaFree(A);
@@ -307,8 +319,8 @@ cudaError_t TestCutlassConv(int M, int N, int K, float alpha, float beta) {
     //
     // Launch CUTLASS GEMM.
     //
-
-    result = CutlassSconvNN(M, N, K, alpha, A, lda, B, ldb, beta, C_cutlass, ldc);
+    ///Yufan: need to change
+    result = CutlassSconvNN(M, N, K, alpha, A, lda0, lda1, lda2, B, ldb0, ldb1, ldb2, beta, C_cutlass, ldc0, ldc1, ldc2);
 
     if (result != cudaSuccess) {
         std::cerr << "CUTLASS GEMM kernel failed: "
@@ -325,9 +337,9 @@ cudaError_t TestCutlassConv(int M, int N, int K, float alpha, float beta) {
     //
     // Verify.
     //
-
-    // Launch reference GEMM
-    result = ReferenceConv(M, N, K, alpha, A, lda, B, ldb, beta, C_reference, ldc);
+    // Launch reference CONV
+    result = ReferenceConv(NF, NY, NX, NH, NW, NR, NS,NC,
+                           sW, sH, alpha, A, B, beta, C_reference);
 
     if (result != cudaSuccess) {
         std::cerr << "Reference GEMM kernel failed: "
@@ -342,8 +354,8 @@ cudaError_t TestCutlassConv(int M, int N, int K, float alpha, float beta) {
     }
 
     // Copy to host and verify equivalence.
-    std::vector<float> host_cutlass(ldc * M, 0);
-    std::vector<float> host_reference(ldc * M, 0);
+    std::vector<float> host_cutlass(NX*NY*NF*NN, 0);
+    std::vector<float> host_reference(NX*NY*NF*NN, 0);
 
     result = cudaMemcpy(host_cutlass.data(), C_cutlass, sizeof_C, cudaMemcpyDeviceToHost);
 

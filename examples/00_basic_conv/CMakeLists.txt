@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 cutlass_example_add_executable(
-  00_basic_gemm
-        basic_conv.cu
+  00_basic_conv
+  basic_conv.cu
 )
   

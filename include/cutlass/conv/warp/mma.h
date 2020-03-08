@@ -1,8 +1,17 @@
-//
-// Created by yufan on 3/6/20.
-//
+#pragma once
 
-#ifndef CUTLASS_MMA_H
-#define CUTLASS_MMA_H
+#include "cutlass/cutlass.h"
 
-#endif //CUTLASS_MMA_H
+namespace cutlass {
+namespace conv {
+namespace warp {
+
+/// Query the number of threads per warp
+    template <typename OperatorClass>
+    struct WarpSize {
+        static int const value = 32;
+    };
+
+}
+}
+}
