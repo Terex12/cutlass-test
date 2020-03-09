@@ -18,7 +18,7 @@
 #include "cutlass/conv/threadblock/threadblock_swizzle.h"
 
 #include "cutlass/transform/threadblock/predicated_tile_iterator.h"
-
+#include "cutlass/epilogue/threadblock/default_epilogue_simt.h"
 
 namespace cutlass {
 namespace conv {
@@ -112,10 +112,12 @@ namespace kernel {
             LayoutB,
             kAlignmentB,
             ElementC,
-            layout::RowMajor,
+            //layout::RowMajor,
+            layout::TensorNCHW,
             ElementAccumulator,
             arch::OpClassSimt,
             ArchTag,
+            ImageShape,
             ThreadblockShape,
             WarpShape,
             ConvShape<1, 1, 1>,
@@ -139,7 +141,7 @@ namespace kernel {
                         arch::Sm60,
                         ThreadblockShape,
                         WarpShape,
-                        GemmShape<1, 1, 1>,
+                        ConvShape<1, 1, 1>,
                         2,
                         Operator>::ThreadblockMma;
             

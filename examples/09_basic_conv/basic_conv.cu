@@ -12,7 +12,10 @@
 //
 
 // Defines cutlass::conv::device::Conv, the generic Conv computation template class.
+#include "cutlass/cutlass.h"
+#include "cutlass/coord.h"
 #include "cutlass/conv/device/conv.h"
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -23,7 +26,7 @@
 
 /// Define a CUTLASS GEMM template and launch a GEMM kernel.
 cudaError_t CutlassSconvNN(
-        int NF, int NY, int NX, int NH, int NW, int NR, int NS, int NC,
+        int NF, int NY, int NX, int NH, int NW, int NR, int NS, int NC,int NN,
         int sW, int sH,
         float alpha,
         float const *A,
@@ -43,44 +46,46 @@ cudaError_t CutlassSconvNN(
     //
     // To view the full conv device API interface, see `cutlass/conv/device/conv.h`
 
-//    using TensorNCHW = cutlass::layout::TensorNCHW;
-//
-//    using CutlassConv = cutlass::conv::device::Conv<float,        // Data-type of A matrix
-//            TensorNCHW,  // Layout of A matrix
-//            float,        // Data-type of B matrix
-//            TensorNCHW,  // Layout of B matrix
-//            float,        // Data-type of C matrix
-//            TensorNCHW>; // Layout of C matrix
-//
-//    /// Stride vector
-//    using Stride = Coord<3, Index>;
-//
-//    /// Construct stride for tensors
-//    Stride strideA = make_Coord(lda0, lda1, lda2);
-//    Stride strideB = make_Coord(ldb0, ldb1, ldb2);
-//    Stride strideC = make_Coord(ldc0, ldc1, ldc2);
-//
-//    // Define a CUTLASS GEMM type
-//    CutlassConv conv_operator;
-//
-//    ///Creat the arguments struct from input
-//    CutlassConv::Arguments args({NX*NY, NN*NF, NC*NR*NS},  // Conv Problem dimensions
-//                                {},          // padding ...
-//                                {A, strideA},    // Tensor-ref for source matrix A
-//                                {B, strideB},    // Tensor-ref for source matrix B
-//                                {C, strideC},    // Tensor-ref for source matrix C
-//                                {alpha, beta}); // Scalars used in the Epilogue
-//
-//
-//    /// Launch the CUTLASS GEMM kernel.
-//    cutlass::Status status = conv_operator(args);
-//
-//    if (status != cutlass::Status::kSuccess) {
-//        return cudaErrorUnknown;
-//    }
-//
-//    // Return success, if no errors were encountered.
-//    return cudaSuccess;
+    using TensorNCHW = cutlass::layout::TensorNCHW;
+
+    using CutlassConv = cutlass::conv::device::Conv<1,2,
+            float,        // Data-type of A matrix
+            TensorNCHW,  // Layout of A matrix
+            float,        // Data-type of B matrix
+            TensorNCHW,  // Layout of B matrix
+            float,        // Data-type of C matrix
+            TensorNCHW>; // Layout of C matrix
+
+    //using Index = int32_t;
+    /// Stride vector
+    //using Stride = Coord<3>;
+
+    /// Construct stride for tensors
+    cutlass::Coord<3> strideA = cutlass::make_Coord(lda0, lda1, lda2);
+    cutlass::Coord<3> strideB = cutlass::make_Coord(ldb0, ldb1, ldb2);
+    cutlass::Coord<3> strideC = cutlass::make_Coord(ldc0, ldc1, ldc2);
+
+    // Define a CUTLASS GEMM type
+    CutlassConv conv_operator;
+
+    ///Creat the arguments struct from input
+    CutlassConv::Arguments args({NX*NY, NN*NF, NC*NR*NS},  // Conv Problem dimensions
+                                {},          // padding ...
+                                {A, strideA},    // Tensor-ref for source matrix A
+                                {B, strideB},    // Tensor-ref for source matrix B
+                                {C, strideC},    // Tensor-ref for source matrix C
+                                {alpha, beta}); // Scalars used in the Epilogue
+
+
+    /// Launch the CUTLASS GEMM kernel.
+    cutlass::Status status = conv_operator(args);
+
+    if (status != cutlass::Status::kSuccess) {
+        return cudaErrorUnknown;
+    }
+
+    // Return success, if no errors were encountered.
+    return cudaSuccess;
 }
 
 ///Yufan: check it later to modify
@@ -174,7 +179,7 @@ cudaError_t AllocateMatrix(float **matrix, int ldm0, int ldm1, int ldm2, int out
 
 /// Naive reference GEMM computation.
 __global__ void ReferenceConv_kernel(
-        int NF, int NY, int NX, int NH, int NW, int NR, int NS, int NC,
+        int NF, int NY, int NX, int NH, int NW, int NR, int NS, int NC, int NN,
         int sW, int sH,
         float alpha,
         float const *A,     //Input
@@ -185,7 +190,7 @@ __global__ void ReferenceConv_kernel(
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
 
-    if (i < M && j < N) {
+    if (i < NX*NY && j < NF*NN) {
         float accumulator = 0;
 
         int x = i % NX;
@@ -208,7 +213,7 @@ __global__ void ReferenceConv_kernel(
 
 /// Reference GEMM computation.
 cudaError_t ReferenceConv(
-        int NF, int NY, int NX, int NH, int NW, int NR, int NS, int NC,
+        int NF, int NY, int NX, int NH, int NW, int NR, int NS, int NC,int NN,
         int sW, int sH,
         float alpha,
         float const *A,     //Input
@@ -218,11 +223,11 @@ cudaError_t ReferenceConv(
 
     dim3 block(16, 16);
     dim3 grid(
-            (M + block.x - 1) / block.x,
-            (N + block.y - 1) / block.y
+            (NX*NY + block.x - 1) / block.x,
+            (NF*NN + block.y - 1) / block.y
     );
 
-    ReferenceConv_kernel << < grid, block >> > (NF, NY, NX, NH, NW, NR, NS,NC,
+    ReferenceConv_kernel << < grid, block >> > (NF, NY, NX, NH, NW, NR, NS,NC, NN,
             sW, sH, alpha, A, B, beta, C);
 
     return cudaGetLastError();
@@ -233,7 +238,7 @@ cudaError_t ReferenceConv(
 /// Allocate several matrices in GPU device memory and call a single-precision
 /// CUTLASS GEMM kernel.
 cudaError_t TestCutlassConv(int NW, int NH, int NC, int NN, int NF, int NR, int NS, /*input and kernel size*/
-        int pH, int pW, int sH, int sW, int dH, int dW /*padding ...*/
+        int pH, int pW, int sH, int sW, int dH, int dW /*padding ...*/,
         float alpha, float beta) {
     cudaError_t result;
 
@@ -252,8 +257,8 @@ cudaError_t TestCutlassConv(int NW, int NH, int NC, int NN, int NF, int NR, int 
     int ldb1 = NS*NR;
     int ldb2 = NS*NR*NC;
     
-    int X = (NW+2*pW-NS)/sW+1;
-    int Y = (NH+2*pH-NR)/sH+1;
+    int NX = (NW+2*pW-NS)/sW+1;
+    int NY = (NH+2*pH-NR)/sH+1;
     int ldc0 = NX;
     int ldc1 = NX*NY;
     int ldc2 = NX*NY*NF;
@@ -319,7 +324,7 @@ cudaError_t TestCutlassConv(int NW, int NH, int NC, int NN, int NF, int NR, int 
     // Launch CUTLASS GEMM.
     //
     ///Yufan: need to change
-    result = CutlassSconvNN(M, N, K, alpha, A, lda0, lda1, lda2, B, ldb0, ldb1, ldb2, beta, C_cutlass, ldc0, ldc1, ldc2);
+    //result = CutlassSconvNN(M, N, K, alpha, A, lda0, lda1, lda2, B, ldb0, ldb1, ldb2, beta, C_cutlass, ldc0, ldc1, ldc2);
 
     if (result != cudaSuccess) {
         std::cerr << "CUTLASS GEMM kernel failed: "
@@ -337,7 +342,7 @@ cudaError_t TestCutlassConv(int NW, int NH, int NC, int NN, int NF, int NR, int 
     // Verify.
     //
     // Launch reference CONV
-    result = ReferenceConv(NF, NY, NX, NH, NW, NR, NS,NC,
+    result = ReferenceConv(NF, NY, NX, NH, NW, NR, NS,NC,NN,
                            sW, sH, alpha, A, B, beta, C_reference);
 
     if (result != cudaSuccess) {

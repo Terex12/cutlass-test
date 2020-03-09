@@ -13,7 +13,6 @@ namespace kernel {
     ///specialize from default_conv.h line last statement
     template <
             typename Mma_,                  ///! Threadblock-level mma
-            ///Yufan: no need, later remove
             typename Epilogue_,             ///! Epilogue (could be relu or something else)
             typename ThreadblockSwizzle_,   ///! Threadblock swizzling function
             bool SplitKSerial               ///! If true, code supporting split-K via serial reduction is enabled.

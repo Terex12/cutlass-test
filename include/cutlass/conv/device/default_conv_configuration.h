@@ -21,67 +21,82 @@
 namespace cutlass {
 namespace conv {
 namespace device {
-    template <
-            int Tx,
-            int Ty,
-            int Tf,
-            int Tn,
-            int Tc,
-            int pH, int pW, int sH, int sW, int dH, int dW,
-            typename OperatorClass,
-            typename ArchTag,
-            typename ElementA,
-            typename ElementB,
-            typename ElementC,
-            typename ElementAccumulator
-    >
-    struct DefaultGemmConfiguration;
+////////////////////////////////////////////////////////////////////////////////
 
+        template <
+                typename OperatorClass,
+                typename ArchTag,
+                typename ElementA,
+                typename ElementB,
+                typename ElementC,
+                typename ElementAccumulator,
+                int Tx, int Ty
+        >
+        struct DefaultConvConfiguration;
 
+////////////////////////////////////////////////////////////////////////////////
 
-    template <
-            int Tx,
-            int Ty,
-            int Tf,
-            int Tn,
-            int Tc,
-            int pH, int pW, int sH, int sW, int dH, int dW,
-            typename ArchTag,
-            typename ElementA,
-            typename ElementB,
-            typename ElementC,
-            typename ElementAccumulator
-            >
-    struct DefaultConvConfiguration<
-            Tx,
-            Ty,
-            Tf,
-            Tn,
-            Tc,
-            pH, pW, sH, sW, dH, dW,
-            arch::OpClassSimt,
-            ArchTag,
-            ElementA,
-            ElementB,
-            ElementC,
-            ElementAccumulator> {
-
-        static int const kAlignmentA = 1;
-        static int const kAlignmentB = 1;
-        ///Yufan, for reduction axis, we can only tile on C
-        using ThreadblockShape = ConvShape<Tx*Ty, Tf*Tn, NR*NS*Tc>;
-        using ImageShape = ConvShape<Tx+NS-1, Ty+NR-1, Tc>;
-        using WarpShape = ConvShape<32, 64, 8>;
-        using InstructionShape = ConvShape<1, 1, 1>;
-        static int const kStages = 2;
-        using EpilogueOutputOp = epilogue::thread::LinearCombination<
+        template <
+                typename ArchTag,
+                typename ElementA,
+                typename ElementB,
+                typename ElementC,
+                typename ElementAccumulator,
+                int Tx,
+                int Ty>
+        struct DefaultConvConfiguration<
+                arch::OpClassSimt,
+                ArchTag,
+                ElementA,
+                ElementB,
                 ElementC,
-                1,
-                ElementAccumulator,
-                ElementAccumulator
-        >;
-        using Operator = arch::OpMultiplyAdd;
-    };
+                ElementAccumulator, Tx, Ty> {
+
+            static int const kAlignmentA = 1;
+            static int const kAlignmentB = 1;
+//            static int const Tx = 1;
+//            static int const Ty = 1;
+            ///Yufan: why 16 is not good?
+            using ThreadblockShape = ConvShape<Tx*Ty, 64, 8>;
+            using ImageShape = ConvShape<Tx, Ty, 8>;
+            using WarpShape = ConvShape<32, 64, 8>;
+            using InstructionShape = ConvShape<1, 1, 1>;
+            static int const kStages = 2;
+
+            using EpilogueOutputOp = epilogue::thread::LinearCombination<
+                    ElementC,
+                    1,
+                    ElementAccumulator,
+                    ElementAccumulator
+            >;
+
+            using Operator = arch::OpMultiplyAdd;
+        };
+
+////////////////////////////////////////////////////////////////////////////////
+
+//        template <
+//                typename ArchTag,
+//                typename ElementC>
+//        struct DefaultConvConfiguration<arch::OpClassSimt, ArchTag, int8_t, int8_t, ElementC, int32_t> {
+//
+//            static int const kAlignmentA = 4;
+//            static int const kAlignmentB = 4;
+//            using ThreadblockShape = ConvShape<128, 128, 32>;
+//            using WarpShape = ConvShape<32, 64, 32>;
+//            using InstructionShape = ConvShape<1, 1, 4>;
+//            static int const kStages = 2;
+//
+//            using EpilogueOutputOp = epilogue::thread::LinearCombinationClamp<
+//                    ElementC,
+//                    1,
+//                    int32_t,
+//                    float
+//            >;
+//
+//            using Operator = arch::OpMultiplyAdd;
+//        };
+
 
 }
 }

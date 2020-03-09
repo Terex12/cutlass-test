@@ -38,6 +38,14 @@ namespace conv {
         }
     };
 
+    /// Type alias of the transpose of a GemmShape
+    template <
+            /// concept: GemmShape
+            typename Shape
+    >
+    using ConvShapeTranspose = ConvShape<Shape::kN, Shape::kM, Shape::kK>;
+
+
     ///Yufan: problem size should consider 5 ele or 3
     struct ConvCoord : public Coord<3, int> {
 

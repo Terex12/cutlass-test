@@ -48,7 +48,7 @@ namespace detail {
 
 /// Structure to compute the matrix product for HFMA
 template <
-  /// Size of the Gemm problem - concept: conv::GemmShape<>
+  /// Size of the Conv problem - concept: conv::ConvShape<>
   typename Shape,
 
   /// Layout of A matrix (concept: MatrixLayout)
@@ -110,7 +110,7 @@ struct Mma_HFMA2 <
 
     /// Use 1x1x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      conv::GemmShape<2,1,1>,
+      conv::ConvShape<2,1,1>,
       1,
       half_t,
       layout::ColumnMajor,
@@ -196,7 +196,7 @@ struct Mma_HFMA2<
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      conv::GemmShape<1,2,1>,
+      conv::ConvShape<1,2,1>,
       1,
       half_t,
       layout::ColumnMajor,
@@ -286,7 +286,7 @@ struct Mma_HFMA2 <
     D = C;
 
     using Mma = arch::Mma<
-      conv::GemmShape<2,1,1>,
+      conv::ConvShape<2,1,1>,
       1,
       half_t,
       layout::ColumnMajor,
@@ -373,7 +373,7 @@ struct Mma_HFMA2<
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      conv::GemmShape<1,2,1>,
+      conv::ConvShape<1,2,1>,
       1,
       half_t,
       layout::ColumnMajor,
@@ -460,7 +460,7 @@ struct Mma_HFMA2 <
 
     /// Use 1x1x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      conv::GemmShape<2,1,1>,
+      conv::ConvShape<2,1,1>,
       1,
       half_t,
       layout::RowMajor,
@@ -550,7 +550,7 @@ struct Mma_HFMA2 <
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      conv::GemmShape<1,2,1>,
+      conv::ConvShape<1,2,1>,
       1,
       half_t,
       layout::RowMajor,
@@ -640,7 +640,7 @@ struct Mma_HFMA2 <
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      conv::GemmShape<2,1,1>,
+      conv::ConvShape<2,1,1>,
       1,
       half_t,
       layout::RowMajor,
@@ -731,7 +731,7 @@ struct Mma_HFMA2<
 
     /// Use 1x2x1 HFMA2 sequence for bulk of computation
     using Mma = arch::Mma<
-      conv::GemmShape<1,2,1>,
+      conv::ConvShape<1,2,1>,
       1,
       half_t,
       layout::RowMajor,
@@ -816,7 +816,7 @@ struct Mma_HFMA2<
     D = C;
 
     /// Use 1x1x2 HFMA2 sequence for bulk of computation
-    using GemmShape = conv::GemmShape<1,1,2>;
+    using ConvShape = conv::ConvShape<1,1,2>;
 
     Array<half_t, 1> *ptr_D = reinterpret_cast<Array<half_t, 1> *>(&D);
     Array<half_t, 2> const *ptr_A = reinterpret_cast<Array<half_t, 2> const *>(&A);
@@ -827,10 +827,10 @@ struct Mma_HFMA2<
     cutlass::reduction::thread::Reduce< plus<half_t>, Array<half_t, 2> > reduce;
 
     CUTLASS_PRAGMA_UNROLL
-    for(auto n=0; n < Shape::kN / GemmShape::kN; n++){ 
+    for(auto n=0; n < Shape::kN / ConvShape::kN; n++){ 
 
       CUTLASS_PRAGMA_UNROLL
-      for(auto m=0; m < Shape::kM / GemmShape::kM; m++){
+      for(auto m=0; m < Shape::kM / ConvShape::kM; m++){
 
         Array<half_t, 2> tmp_C;
         tmp_C.clear();
@@ -838,7 +838,7 @@ struct Mma_HFMA2<
         ptr_tmp_C[0] = ptr_D[n*Shape::kM + m];
 
         CUTLASS_PRAGMA_UNROLL
-        for(auto k=0; k <  Shape::kK / GemmShape::kK; k++){ 
+        for(auto k=0; k <  Shape::kK / ConvShape::kK; k++){ 
           tmp_C = mac(ptr_A[m*Shape::kK/2 + k], ptr_B[n*Shape::kK/2 + k], tmp_C);
         }
 
@@ -895,7 +895,7 @@ struct Mma_HFMA2<
     D = C;
 
     /// Use 1x1x2 HFMA2 sequence for bulk of computation
-    using GemmShape= conv::GemmShape<1,1,2>;
+    using ConvShape= conv::ConvShape<1,1,2>;
 
     Array<half_t, 1> *ptr_D = reinterpret_cast<Array<half_t, 1> *>(&D);
     Array<half_t, 2> const *ptr_A = reinterpret_cast<Array<half_t, 2> const *>(&A);
@@ -906,10 +906,10 @@ struct Mma_HFMA2<
     cutlass::reduction::thread::Reduce< plus<half_t>, Array<half_t, 2> > reduce;
 
     CUTLASS_PRAGMA_UNROLL
-    for(auto n=0; n < Shape::kN / GemmShape::kN; n++){ 
+    for(auto n=0; n < Shape::kN / ConvShape::kN; n++){ 
 
       CUTLASS_PRAGMA_UNROLL
-      for(auto m=0; m < Shape::kM / GemmShape::kM; m++){
+      for(auto m=0; m < Shape::kM / ConvShape::kM; m++){
 
         Array<half_t, 2> tmp_C;
         tmp_C.clear();
@@ -917,7 +917,7 @@ struct Mma_HFMA2<
         ptr_tmp_C[0] = ptr_D[n*Shape::kM + m];
 
         CUTLASS_PRAGMA_UNROLL
-        for(auto k=0; k <  Shape::kK / GemmShape::kK; k++){ 
+        for(auto k=0; k <  Shape::kK / ConvShape::kK; k++){ 
 
           tmp_C = mac(ptr_A[m*Shape::kK/2 + k], ptr_B[n*Shape::kK/2 + k], tmp_C);
 
@@ -939,7 +939,7 @@ struct Mma_HFMA2<
 
 /// Structure to compute the matrix product
 template <
-  /// Size of the Gemm problem - concept: conv::GemmShape<>
+  /// Size of the Conv problem - concept: conv::ConvShape<>
   typename Shape_, typename LayoutA, typename LayoutB, typename LayoutC
 >
 struct Mma<
@@ -953,7 +953,7 @@ struct Mma<
   arch::OpMultiplyAdd
   > {
 
-  /// Size of the Gemm problem - concept: conv::GemmShape<>
+  /// Size of the Conv problem - concept: conv::ConvShape<>
   using Shape = Shape_;
 
   /// Data type of operand A
@@ -1022,7 +1022,7 @@ struct Mma<
 
 namespace detail {
 
-  /// Determines whether to enable thread::Gemm<> specializations compatible with SM50
+  /// Determines whether to enable thread::Conv<> specializations compatible with SM50
   template <
     typename LayoutA,
     /// Layout of B matrix (concept: MatrixLayout)
@@ -1043,7 +1043,7 @@ namespace detail {
 
 /// Computes matrix product when C is row-major
 template <
-  /// Size of the Gemm problem - concept: conv::GemmShape<>
+  /// Size of the Conv problem - concept: conv::ConvShape<>
   typename Shape_,
   typename LayoutA_,
   typename LayoutB_
@@ -1072,7 +1072,7 @@ struct Mma<
   using Operator = arch::OpMultiplyAdd;
 
   using TransposeMma = Mma<
-    GemmShapeTranspose<Shape>,
+    ConvShapeTranspose<Shape>,
     half_t,
     typename layout::LayoutTranspose<LayoutB>::type,
     half_t,

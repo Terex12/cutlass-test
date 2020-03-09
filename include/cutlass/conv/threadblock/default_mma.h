@@ -4,13 +4,14 @@
 #include "cutlass/numeric_types.h"
 #include "cutlass/arch/arch.h"
 #include "cutlass/arch/wmma.h"
+#include "cutlass/conv/threadblock/default_mma_core_simt.h"
 
 #include "cutlass/transform/threadblock/predicated_tile_iterator.h"
 
 namespace cutlass {
 namespace conv {
 namespace threadblock {
-
+////////////////////////////////////////////////////////////////////////////////
     template <
             /// Element type for A matrix operand
             typename ElementA_,
@@ -77,7 +78,7 @@ namespace threadblock {
             /// Operation performed by GEMM
             typename Operator>
     struct DefaultMma<ElementA, LayoutA, kAlignmentA, ElementB, LayoutB,
-            kAlignmentB, ElementAccumulator, layout::RowMajor,
+            kAlignmentB, ElementAccumulator, layout::RowMajor, ///should change later we use tensor layout
             arch::OpClassSimt, ArchTag, ThreadblockShape, WarpShape,
             InstructionShape, 2, Operator, false> {
         // Define the MmaCore components

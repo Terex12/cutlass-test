@@ -18,6 +18,25 @@
 namespace cutlass {
 namespace conv {
 namespace threadblock {
+    namespace detail {
+
+// convert a WarpShape which is the whole tile of elements into warp num threads.
+// The goal is for each thread's tile of elements to be as square as possible
+// for performance (4x4 will be faster than 2x8).
+        template<typename WarpShape>
+        constexpr int simt_get_warp_threads_m() {
+            return (WarpShape::kM > WarpShape::kN) ? 8 : 4;
+        }
+
+/// Computes padding in shared memory to perform efficient transpose without bank conflicts.
+        constexpr int simt_transpose_padding(int threads, int crosswise, int size_in_bits) {
+            return (size_in_bits >= 32 ?
+                    threads / crosswise / (size_in_bits / 32) :
+                    threads / crosswise * (32 / size_in_bits)
+            );
+        }
+
+    }
 /// Partial specialization:
 ///
 ///   A: row-major

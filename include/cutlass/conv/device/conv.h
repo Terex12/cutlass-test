@@ -17,10 +17,10 @@ namespace device {
     template <
             int Tx,
             int Ty,
-            int Tf,
-            int Tn,
-            int Tc,
-            int pH, int pW, int sH, int sW, int dH = 1, int dW = 1
+//            int Tf,
+//            int Tn,
+//            int Tc,
+//            int pH, int pW, int sH, int sW, int dH, int dW,
             /// Element type for A matrix operand
             typename ElementA_,
             /// Layout type for A matrix operand
@@ -42,47 +42,47 @@ namespace device {
             ///Yufan: define image input tile shape
             typename ImageShape_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-                    ElementAccumulator_>::ImageShape,
+                    ElementAccumulator_, Tx, Ty>::ImageShape,
             /// Threadblock-level tile size (concept: ConvShape)
             typename ThreadblockShape_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-                    ElementAccumulator_>::ThreadblockShape,
+                    ElementAccumulator_, Tx, Ty>::ThreadblockShape,
             /// Warp-level tile size (concept: ConvShape)
             typename WarpShape_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-                    ElementAccumulator_>::WarpShape,
+                    ElementAccumulator_, Tx, Ty>::WarpShape,
             /// Instruction-level tile size (concept: ConvShape)
             typename InstructionShape_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-                    ElementAccumulator_>::InstructionShape,
+                    ElementAccumulator_, Tx, Ty>::InstructionShape,
             /// Epilogue output operator
             ///Yufan: no need, later remove
             typename EpilogueOutputOp_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-                    ElementAccumulator_>::EpilogueOutputOp,
+                    ElementAccumulator_, Tx, Ty>::EpilogueOutputOp,
             /// Threadblock-level swizzling operator
             typename ThreadblockSwizzle_ = threadblock::ConvIdentityThreadblockSwizzle,
             /// Number of stages used in the pipelined mainloop
             int Stages =
-            typename DefaultConvConfiguration<
+             DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-                    ElementAccumulator_>::kStages,
+                    ElementAccumulator_, Tx, Ty>::kStages,
             /// Access granularity of A matrix in units of elements
             int AlignmentA =
-            typename DefaultConvConfiguration<
+             DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-                    ElementAccumulator_>::kAlignmentA,
+                    ElementAccumulator_, Tx, Ty>::kAlignmentA,
             /// Access granularity of B matrix in units of elements
             int AlignmentB =
-            typename DefaultConvConfiguration<
+             DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-                    ElementAccumulator_>::kAlignmentB,
+                    ElementAccumulator_, Tx, Ty>::kAlignmentB,
             /// If true, kernel supports split-K with serial reduction
             bool SplitKSerial = false,
             /// Operation performed by GEMM
             typename Operator_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-                    ElementAccumulator_>::Operator,
+                    ElementAccumulator_, Tx, Ty>::Operator,
             /// Whether Beta is zero or not
             ///Yufan: no need, later remove
             bool IsBetaZero = false>
@@ -125,12 +125,12 @@ namespace device {
                 ElementB,
                 LayoutB,
                 kAlignmentB,
-                ElementC,  ///Yufan: a bad naming, D is using C's layout and datatype
+                ElementC,
                 LayoutC,
                 ElementAccumulator,
                 OperatorClass,
                 ArchTag,
-                //ImageShape,
+                ImageShape,
                 ThreadblockShape,
                 WarpShape,
                 InstructionShape,
@@ -164,12 +164,10 @@ namespace device {
                     TensorRef<ElementA const, LayoutA> ref_A_,      ///Yufan: layout have more than 1 stride  TensorNHWC in tensor.h
                     TensorRef<ElementB const, LayoutB> ref_B_,
                     TensorRef<ElementC, LayoutC> ref_C_,
-                    typename EpilogueOutputOp::Params epilogue_ =
-                    typename EpilogueOutputOp::Params(),
-                    int split_k_slices = 1
-            ):
+                    typename EpilogueOutputOp::Params epilogue_ = typename EpilogueOutputOp::Params(),
+                    int split_k_slices = 1 ):
                     problem_size(problem_size_),
-                    aux(aux_);
+                    aux(aux_),
                     ref_A(ref_A_),
                     ref_B(ref_B_),
                     ref_C(ref_C_),

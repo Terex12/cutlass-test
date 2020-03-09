@@ -63,7 +63,7 @@ namespace threadblock {
         using WarpGemm = typename Policy::Operator::Shape;
 
         /// Shape describing the number of warps filling the CTA
-        using WarpCount = GemmShape<Shape::kM / WarpGemm::kM,
+        using WarpCount = ConvShape<Shape::kM / WarpGemm::kM,
                 Shape::kN / WarpGemm::kN,
                 Shape::kK / WarpGemm::kK>;
 

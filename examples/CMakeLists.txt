@@ -60,7 +60,7 @@ foreach(EXAMPLE
   06_splitK_gemm
   07_volta_tensorop_gemm
   08_turing_tensorop_gemm
-
+  09_basic_conv
   )
 
   add_subdirectory(${EXAMPLE})
