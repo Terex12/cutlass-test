@@ -17,7 +17,7 @@ namespace conv {
             /// Columns of matrix product (F)
             int N = 1,
             /// Reduction (R*S*C)
-            int K = 1,
+            int K = 1
     >
     struct ConvShape {
         static int const kM = M;
@@ -198,7 +198,7 @@ namespace conv {
     };
 
     /// Auxiliary info like padding, stride, dilation
-    struct AuxiliaryCoord{
+    struct AuxiliaryCoord : public Coord<6, int>{
         /// Integer-valued index
         typedef int Index;
 

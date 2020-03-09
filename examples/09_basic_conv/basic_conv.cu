@@ -43,44 +43,44 @@ cudaError_t CutlassSconvNN(
     //
     // To view the full conv device API interface, see `cutlass/conv/device/conv.h`
 
-    using TensorNCHW = cutlass::layout::TensorNCHW;
-
-    using CutlassConv = cutlass::conv::device::Conv<float,        // Data-type of A matrix
-            TensorNCHW,  // Layout of A matrix
-            float,        // Data-type of B matrix
-            TensorNCHW,  // Layout of B matrix
-            float,        // Data-type of C matrix
-            TensorNCHW>; // Layout of C matrix
-
-    /// Stride vector
-    using Stride = Coord<3, Index>;
-
-    /// Construct stride for tensors
-    Stride strideA = make_Coord(lda0, lda1, lda2);
-    Stride strideB = make_Coord(ldb0, ldb1, ldb2);
-    Stride strideC = make_Coord(ldc0, ldc1, ldc2);
-
-    // Define a CUTLASS GEMM type
-    CutlassConv conv_operator;
-
-    ///Creat the arguments struct from input
-    CutlassConv::Arguments args({NX*NY, NN*NF, NC*NR*NS},  // Conv Problem dimensions
-                                {},          // padding ...
-                                {A, strideA},    // Tensor-ref for source matrix A
-                                {B, strideB},    // Tensor-ref for source matrix B
-                                {C, strideC},    // Tensor-ref for source matrix C
-                                {alpha, beta}); // Scalars used in the Epilogue
-
-
-    /// Launch the CUTLASS GEMM kernel.
-    cutlass::Status status = conv_operator(args);
-
-    if (status != cutlass::Status::kSuccess) {
-        return cudaErrorUnknown;
-    }
-
-    // Return success, if no errors were encountered.
-    return cudaSuccess;
+//    using TensorNCHW = cutlass::layout::TensorNCHW;
+//
+//    using CutlassConv = cutlass::conv::device::Conv<float,        // Data-type of A matrix
+//            TensorNCHW,  // Layout of A matrix
+//            float,        // Data-type of B matrix
+//            TensorNCHW,  // Layout of B matrix
+//            float,        // Data-type of C matrix
+//            TensorNCHW>; // Layout of C matrix
+//
+//    /// Stride vector
+//    using Stride = Coord<3, Index>;
+//
+//    /// Construct stride for tensors
+//    Stride strideA = make_Coord(lda0, lda1, lda2);
+//    Stride strideB = make_Coord(ldb0, ldb1, ldb2);
+//    Stride strideC = make_Coord(ldc0, ldc1, ldc2);
+//
+//    // Define a CUTLASS GEMM type
+//    CutlassConv conv_operator;
+//
+//    ///Creat the arguments struct from input
+//    CutlassConv::Arguments args({NX*NY, NN*NF, NC*NR*NS},  // Conv Problem dimensions
+//                                {},          // padding ...
+//                                {A, strideA},    // Tensor-ref for source matrix A
+//                                {B, strideB},    // Tensor-ref for source matrix B
+//                                {C, strideC},    // Tensor-ref for source matrix C
+//                                {alpha, beta}); // Scalars used in the Epilogue
+//
+//
+//    /// Launch the CUTLASS GEMM kernel.
+//    cutlass::Status status = conv_operator(args);
+//
+//    if (status != cutlass::Status::kSuccess) {
+//        return cudaErrorUnknown;
+//    }
+//
+//    // Return success, if no errors were encountered.
+//    return cudaSuccess;
 }
 
 ///Yufan: check it later to modify

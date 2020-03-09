@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cutlass/cutlass.h"
-
+#include "cutlass/arch/arch.h"
 #include "cutlass/layout/matrix.h"
 #include "cutlass/numeric_types.h"
 
@@ -11,7 +11,7 @@
 
 #include "cutlass/conv/conv.h"
 #include "cutlass/conv/kernel/conv.h"
-#include "cutlass/conv/kernel/conv_pipelined.h"
+//#include "cutlass/conv/kernel/conv_pipelined.h"
 
 #include "cutlass/conv/threadblock/default_mma.h"
 #include "cutlass/conv/threadblock/default_mma_core_simt.h"
@@ -46,6 +46,8 @@ namespace kernel {
             typename OperatorClass,
             /// Tag indicating architecture to tune for
             typename ArchTag,
+            /// Input Image Shape
+            typename ImageShape,
             /// Threadblock-level tile size (concept: GemmShape)
             typename ThreadblockShape,
             /// Warp-level tile size (concept: GemmShape)
@@ -87,6 +89,8 @@ namespace kernel {
             typename ElementAccumulator,
             /// Tag indicating architecture to tune for
             typename ArchTag,
+            /// Input Image Shape
+            typename ImageShape,
             /// Threadblock-level tile size (concept: GemmShape)
             typename ThreadblockShape,
             /// Warp-level tile size (concept: GemmShape)
@@ -114,13 +118,14 @@ namespace kernel {
             ArchTag,
             ThreadblockShape,
             WarpShape,
-            GemmShape<1, 1, 1>,
+            ConvShape<1, 1, 1>,
             EpilogueOutputOp,
             ThreadblockSwizzle,
             2 /* Stages*/,
             SplitKSerial,
             Operator> {
             /// Define the threadblock-scoped matrix multiply-accumulate
+            /// Specialize DefaultMma
                 using Mma = typename cutlass::conv::threadblock::DefaultMma<
                         ElementA,
                         LayoutA,

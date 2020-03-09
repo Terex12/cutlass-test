@@ -3,12 +3,14 @@
 #include "cutlass/cutlass.h"
 #include "cutlass/numeric_types.h"
 #include "cutlass/arch/arch.h"
+#include "cutlass/arch/wmma.h"
 
 #include "cutlass/transform/threadblock/predicated_tile_iterator.h"
 
 namespace cutlass {
-namespace gemm {
+namespace conv {
 namespace threadblock {
+
     template <
             /// Element type for A matrix operand
             typename ElementA_,
@@ -45,8 +47,10 @@ namespace threadblock {
             bool AccumulatorsInRowMajor = false
     >
     struct DefaultMma;
+////////////////////////////////////////////////////////////////////////////////
 
-    /// Specialization for row-major output (OperatorClass Simt)
+    /// Specialization for row-major output (OperatorClass Simt) from default_conv.h
+    /// Yufan: I might need auxiliary info to map Input
     template <
             /// Element type for A matrix operand
             typename ElementA,
@@ -77,7 +81,7 @@ namespace threadblock {
             arch::OpClassSimt, ArchTag, ThreadblockShape, WarpShape,
             InstructionShape, 2, Operator, false> {
         // Define the MmaCore components
-        using MmaCore = typename cutlass::gemm::threadblock::DefaultMmaCore<
+        using MmaCore = typename cutlass::conv::threadblock::DefaultMmaCore<
                 ThreadblockShape, WarpShape, InstructionShape, ElementA, LayoutA,
                 ElementB, LayoutB, ElementAccumulator, layout::RowMajor,
                 arch::OpClassSimt, 2, Operator>;
@@ -96,7 +100,7 @@ namespace threadblock {
                 ElementB, LayoutB, 0, typename MmaCore::IteratorThreadMapB, kAlignmentB>;
 
         // Define the threadblock-scoped pipelined matrix multiply
-        using ThreadblockMma = cutlass::gemm::threadblock::MmaPipelined<
+        using ThreadblockMma = cutlass::conv::threadblock::MmaPipelined<
                 typename MmaCore::Shape, IteratorA, typename MmaCore::SmemIteratorA,
                 IteratorB, typename MmaCore::SmemIteratorB, ElementAccumulator,
                 layout::RowMajor, typename MmaCore::MmaPolicy>;

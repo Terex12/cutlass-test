@@ -15,6 +15,12 @@ namespace cutlass {
 namespace conv {
 namespace device {
     template <
+            int Tx,
+            int Ty,
+            int Tf,
+            int Tn,
+            int Tc,
+            int pH, int pW, int sH, int sW, int dH = 1, int dW = 1
             /// Element type for A matrix operand
             typename ElementA_,
             /// Layout type for A matrix operand
@@ -32,7 +38,11 @@ namespace device {
             /// Operator class tag
             typename OperatorClass_ = arch::OpClassSimt,
             /// Tag indicating architecture to tune for
-            typename ArchTag_ = arch::Sm70,
+            typename ArchTag_ = arch::Sm60,
+            ///Yufan: define image input tile shape
+            typename ImageShape_ = typename DefaultConvConfiguration<
+                    OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
+                    ElementAccumulator_>::ImageShape,
             /// Threadblock-level tile size (concept: ConvShape)
             typename ThreadblockShape_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
@@ -54,16 +64,19 @@ namespace device {
             typename ThreadblockSwizzle_ = threadblock::ConvIdentityThreadblockSwizzle,
             /// Number of stages used in the pipelined mainloop
             int Stages =
-            DefaultConvConfiguration<OperatorClass_, ArchTag_, ElementA_, ElementB_,
-                    ElementC_, ElementAccumulator_>::kStages,
+            typename DefaultConvConfiguration<
+                    OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
+                    ElementAccumulator_>::kStages,
             /// Access granularity of A matrix in units of elements
             int AlignmentA =
-            DefaultConvConfiguration<OperatorClass_, ArchTag_, ElementA_, ElementB_,
-                    ElementC_, ElementAccumulator_>::kAlignmentA,
+            typename DefaultConvConfiguration<
+                    OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
+                    ElementAccumulator_>::kAlignmentA,
             /// Access granularity of B matrix in units of elements
             int AlignmentB =
-            DefaultConvConfiguration<OperatorClass_, ArchTag_, ElementA_, ElementB_,
-                    ElementC_, ElementAccumulator_>::kAlignmentB,
+            typename DefaultConvConfiguration<
+                    OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
+                    ElementAccumulator_>::kAlignmentB,
             /// If true, kernel supports split-K with serial reduction
             bool SplitKSerial = false,
             /// Operation performed by GEMM
@@ -88,6 +101,8 @@ namespace device {
         using ElementAccumulator = ElementAccumulator_;
         using OperatorClass = OperatorClass_;
         using ArchTag = ArchTag_;
+        /// Input Image Shape
+        using ImageShape = ImageShape_;
         using ThreadblockShape = ThreadblockShape_;
         using WarpShape = WarpShape_;
         using InstructionShape = InstructionShape_;
@@ -115,6 +130,7 @@ namespace device {
                 ElementAccumulator,
                 OperatorClass,
                 ArchTag,
+                //ImageShape,
                 ThreadblockShape,
                 WarpShape,
                 InstructionShape,
@@ -129,6 +145,7 @@ namespace device {
         /// Argument structure
         struct Arguments {
             ConvCoord problem_size;
+            AuxiliaryCoord aux;
             TensorRef<ElementA const, LayoutA> ref_A;
             TensorRef<ElementB const, LayoutB> ref_B;
             TensorRef<ElementC, LayoutC> ref_C;
@@ -143,7 +160,7 @@ namespace device {
             CUTLASS_HOST_DEVICE
             Arguments(
                     ConvCoord problem_size_,
-                    AuxiliaryCoord aux,  ///Yufan: padding, stride, dilation
+                    AuxiliaryCoord aux_,  ///Yufan: padding, stride, dilation
                     TensorRef<ElementA const, LayoutA> ref_A_,      ///Yufan: layout have more than 1 stride  TensorNHWC in tensor.h
                     TensorRef<ElementB const, LayoutB> ref_B_,
                     TensorRef<ElementC, LayoutC> ref_C_,
@@ -152,6 +169,7 @@ namespace device {
                     int split_k_slices = 1
             ):
                     problem_size(problem_size_),
+                    aux(aux_);
                     ref_A(ref_A_),
                     ref_B(ref_B_),
                     ref_C(ref_C_),

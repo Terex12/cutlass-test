@@ -9,7 +9,7 @@
 #include "cutlass/numeric_types.h"
 
 namespace cutlass {
-namespace gemm {
+namespace conv {
 namespace threadblock {
     ///Yufan: Specialize it in default_mma_core_*.h:line 393 to define lower level policy
     ///Use this type as Mmacore::MmaPolicy ...

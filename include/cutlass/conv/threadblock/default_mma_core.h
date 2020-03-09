@@ -39,7 +39,7 @@
 
 #include "cutlass/conv/warp/mma.h"
 #include "cutlass/conv/threadblock/mma_pipelined.h"
-#include "cutlass/conv/threadblock/mma_singlestage.h"
+//#include "cutlass/conv/threadblock/mma_singlestage.h"
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace cutlass {

@@ -27,9 +27,9 @@ namespace threadblock {
 /// This uses the default warp-level operator given tile sizes
     template <
             /// Shape of threadblock-scoped matrix multiply operator (concept:
-            /// GemmShape)
+            /// ConvShape)
             typename Shape_,
-            /// Shape of warp-level matrix multiply operator (concept: GemmShape)
+            /// Shape of warp-level matrix multiply operator (concept: ConvShape)
             typename WarpShape_,
             /// Data type of A operand
             typename ElementA_,
@@ -41,14 +41,14 @@ namespace threadblock {
             typename LayoutC_,
             /// Operation performed by GEMM
             typename Operator_>
-    struct DefaultMmaCore<Shape_, WarpShape_, GemmShape<1, 1, 1>, ElementA_,
+    struct DefaultMmaCore<Shape_, WarpShape_, ConvShape<1, 1, 1>, ElementA_,
     layout::RowMajor, ElementB_, layout::RowMajor, ElementC_,
     LayoutC_, arch::OpClassSimt, 2, Operator_
     >
     {
         using Shape = Shape_;
         using WarpShape = WarpShape_;
-        using InstructionShape = GemmShape<1, 1, 1>;
+        using InstructionShape = ConvShape<1, 1, 1>;
         using ElementA = ElementA_;
         using LayoutA = layout::RowMajor;
         using ElementB = ElementB_;
@@ -62,7 +62,7 @@ namespace threadblock {
         using Operator = Operator_;
 
         /// Number of warps present
-        using WarpCount = GemmShape<
+        using WarpCount = ConvShape<
                 Shape::kM / WarpShape::kM,
                 Shape::kN / WarpShape::kN,
                 PartitionsK
@@ -149,18 +149,18 @@ namespace threadblock {
         static int const kPaddingM = detail::simt_transpose_padding(kWarpSize, Shape::kK, sizeof_bits<ElementA>::value);
 
         // these should have max of thread tile also
-        using LaneMmaShape = cutlass::gemm::GemmShape<
+        using LaneMmaShape = cutlass::conv::ConvShape<
                 LaneM,
                 LaneN,
                 1>;
-        using Policy = cutlass::gemm::warp::MmaSimtPolicy<
+        using Policy = cutlass::conv::warp::MmaSimtPolicy<
                 cutlass::MatrixShape<WarpNumThreadsM, WarpNumThreadsN>,   // WarpShape
                 cutlass::layout::RowMajorInterleaved<LaneLayout>,         // LaneLayout
                 LaneMmaShape
         >;
 
-        using MmaWarpSimt = cutlass::gemm::warp::MmaSimt<
-                WarpShape,    /// Size of the Gemm problem - concept: gemm::GemmShape<> 128, 128, 8
+        using MmaWarpSimt = cutlass::conv::warp::MmaSimt<
+                WarpShape,    /// Size of the Conv problem - concept: conv::ConvShape<> 128, 128, 8
                 ElementA,     /// Data type of A elements
                 SmemLayoutA,  /// Layout of A matrix (concept: MatrixLayout)
                 ElementB,     /// Data type of B elements
