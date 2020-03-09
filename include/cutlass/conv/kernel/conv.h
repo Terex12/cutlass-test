@@ -10,7 +10,7 @@
 namespace cutlass {
 namespace conv {
 namespace kernel {
-    ///specialize from default_conv.h
+    ///specialize from default_conv.h line last statement
     template <
             typename Mma_,                  ///! Threadblock-level mma
             ///Yufan: no need, later remove
@@ -19,7 +19,7 @@ namespace kernel {
             bool SplitKSerial               ///! If true, code supporting split-K via serial reduction is enabled.
     >
     struct Conv {
-        using Mma = Mma_;
+        using Mma = Mma_;  //DefaultMma::ThreadblockMma
         ///Yufan: Epilogue is for output here
         using Epilogue = Epilogue_;
         using OutputOp = typename Epilogue::OutputOp;
@@ -32,16 +32,15 @@ namespace kernel {
 
         ///Yufan: define in device/conv.h
         struct Params {
-            ///Yufan: what should be here??
-            cutlass::conv::xxx problem_size;
-            cutlass::conv::xxx grid_tiled_shape;
+            cutlass::conv::ConvCoord problem_size;
+            cutlass::conv::ConvCoord grid_tiled_shape;
             typename Mma::IteratorA::Params params_A;   ///Yufan: ctor Params(Layout const &layout)
             typename Mma::IteratorA::TensorRef ref_A;
             typename Mma::IteratorB::Params params_B;
             typename Mma::IteratorB::TensorRef ref_B;
 
-            typename Epilogue::OutputTileIterator::Params params_D;
-            typename Epilogue::OutputTileIterator::TensorRef ref_D;
+            typename Epilogue::OutputTileIterator::Params params_C;
+            typename Epilogue::OutputTileIterator::TensorRef ref_C;
 
             typename OutputOp::Params output_op;
             int *semaphore;
@@ -53,12 +52,11 @@ namespace kernel {
 
             CUTLASS_HOST_DEVICE
             Params(
-                    cutlass::gemm::xxx const & problem_size,
-                    cutlass::gemm::xxx const & grid_tiled_shape,
+                    cutlass::conv::ConvCoord const & problem_size,
+                    cutlass::conv::ConvCoord const & grid_tiled_shape,
                     typename Mma::IteratorA::TensorRef ref_A,
                     typename Mma::IteratorB::TensorRef ref_B,
-                    /*typename Epilogue::OutputTileIterator::TensorRef ref_C,*/
-                    typename Epilogue::OutputTileIterator::TensorRef ref_D,
+                    typename Epilogue::OutputTileIterator::TensorRef ref_C,
                     typename OutputOp::Params output_op = typename OutputOp::Params(),
                     int *semaphore = nullptr
             ):
@@ -68,10 +66,8 @@ namespace kernel {
                     ref_A(ref_A),
                     params_B(ref_B.layout()),
                     ref_B(ref_B),
-                    /*params_C(ref_C.layout()),
-                    ref_C(ref_C),*/
-                    params_D(ref_D.layout()),
-                    ref_D(ref_D),
+                    params_C(ref_C.layout()),
+                    ref_C(ref_C),
                     output_op(output_op),
                     semaphore(semaphore) {
                 ///Yufan: ceil (k/ Tile_k)

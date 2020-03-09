@@ -23,17 +23,16 @@
 
 /// Define a CUTLASS GEMM template and launch a GEMM kernel.
 cudaError_t CutlassSconvNN(
-        int M,
-        int N,
-        int K,
+        int NF, int NY, int NX, int NH, int NW, int NR, int NS, int NC,
+        int sW, int sH,
         float alpha,
         float const *A,
-        int lda0, lda1, lda2,
+        int lda0, int lda1, int lda2,
         float const *B,
-        int ldb0, ldb1, ldb2,
+        int ldb0, int ldb1, int ldb2,
         float beta,
         float *C,
-        int ldc0, ldc1, ldc2) {
+        int ldc0, int ldc1, int ldc2) {
 
     // Define type definition for single-precision CUTLASS GEMM with column-major
     // input matrices and 128x128x8 threadblock tile size (chosen by default).
@@ -54,7 +53,7 @@ cudaError_t CutlassSconvNN(
             TensorNCHW>; // Layout of C matrix
 
     /// Stride vector
-    using Stride = Coord<4, Index>;
+    using Stride = Coord<3, Index>;
 
     /// Construct stride for tensors
     Stride strideA = make_Coord(lda0, lda1, lda2);
@@ -65,7 +64,7 @@ cudaError_t CutlassSconvNN(
     CutlassConv conv_operator;
 
     ///Creat the arguments struct from input
-    CutlassConv::Arguments args({M, N, K},  // Conv Problem dimensions
+    CutlassConv::Arguments args({NX*NY, NN*NF, NC*NR*NS},  // Conv Problem dimensions
                                 {},          // padding ...
                                 {A, strideA},    // Tensor-ref for source matrix A
                                 {B, strideB},    // Tensor-ref for source matrix B

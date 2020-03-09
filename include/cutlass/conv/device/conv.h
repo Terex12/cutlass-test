@@ -6,7 +6,7 @@
 #include "cutlass/device_kernel.h"
 
 #include "cutlass/conv/threadblock/threadblock_swizzle.h"
-#include "cutlass/conv/kernel/gemm.h"
+#include "cutlass/conv/kernel/conv.h"
 
 #include "cutlass/conv/kernel/default_conv.h"
 #include "cutlass/conv/device/default_conv_configuration.h"
@@ -33,15 +33,15 @@ namespace device {
             typename OperatorClass_ = arch::OpClassSimt,
             /// Tag indicating architecture to tune for
             typename ArchTag_ = arch::Sm70,
-            /// Threadblock-level tile size (concept: GemmShape)
+            /// Threadblock-level tile size (concept: ConvShape)
             typename ThreadblockShape_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
                     ElementAccumulator_>::ThreadblockShape,
-            /// Warp-level tile size (concept: GemmShape)
+            /// Warp-level tile size (concept: ConvShape)
             typename WarpShape_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
                     ElementAccumulator_>::WarpShape,
-            /// Instruction-level tile size (concept: GemmShape)
+            /// Instruction-level tile size (concept: ConvShape)
             typename InstructionShape_ = typename DefaultConvConfiguration<
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
                     ElementAccumulator_>::InstructionShape,
@@ -51,7 +51,7 @@ namespace device {
                     OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
                     ElementAccumulator_>::EpilogueOutputOp,
             /// Threadblock-level swizzling operator
-            typename ThreadblockSwizzle_ = threadblock::GemmIdentityThreadblockSwizzle,
+            typename ThreadblockSwizzle_ = threadblock::ConvIdentityThreadblockSwizzle,
             /// Number of stages used in the pipelined mainloop
             int Stages =
             DefaultConvConfiguration<OperatorClass_, ArchTag_, ElementA_, ElementB_,
@@ -102,6 +102,7 @@ namespace device {
         ///Yufan: no need, later remove
         static bool const kIsBetaZero = IsBetaZero;
 
+        ///Yufan: specialize default_conv.h
         using ConvKernel = typename kernel::DefaultConv<
                 ElementA,
                 LayoutA,
@@ -127,12 +128,10 @@ namespace device {
 
         /// Argument structure
         struct Arguments {
-            GemmCoord problem_size;
+            ConvCoord problem_size;
             TensorRef<ElementA const, LayoutA> ref_A;
             TensorRef<ElementB const, LayoutB> ref_B;
-            /*TensorRef<ElementC const, LayoutC> ref_C; */
             TensorRef<ElementC, LayoutC> ref_C;
-
             typename EpilogueOutputOp::Params epilogue;
             int split_k_slices;
 
@@ -147,7 +146,6 @@ namespace device {
                     AuxiliaryCoord aux,  ///Yufan: padding, stride, dilation
                     TensorRef<ElementA const, LayoutA> ref_A_,      ///Yufan: layout have more than 1 stride  TensorNHWC in tensor.h
                     TensorRef<ElementB const, LayoutB> ref_B_,
-                    /*TensorRef<ElementC const, LayoutC> ref_C_,*/
                     TensorRef<ElementC, LayoutC> ref_C_,
                     typename EpilogueOutputOp::Params epilogue_ =
                     typename EpilogueOutputOp::Params(),
@@ -163,7 +161,7 @@ namespace device {
 
     private:
         /// Kernel parameters object
-        typename GemmKernel::Params params_;
+        typename ConvKernel::Params params_;
     public:
         Conv() {}
 
@@ -173,7 +171,8 @@ namespace device {
             ThreadblockSwizzle threadblock_swizzle;
 
             ///Yufan: dim3 grid config; We need to change M, N, K based on convolution cal
-            cutlass::gemm::GemmCoord grid_shape = threadblock_swizzle.get_tiled_shape(
+            ///I think it should map to output dimension
+            cutlass::conv::ConvCoord grid_shape = threadblock_swizzle.get_tiled_shape(
                     args.problem_size,
                     {ThreadblockShape::kM, ThreadblockShape::kN, ThreadblockShape::kK},
                     args.split_k_slices);
@@ -185,33 +184,33 @@ namespace device {
 
             // Initialize the Params structure
             ///Yufan: declare in kernel/conv.h
-            params_ = typename GemmKernel::Params{
+            params_ = typename ConvKernel::Params{
                     args.problem_size,
                     grid_shape,
                     args.ref_A.non_const_ref(),
                     args.ref_B.non_const_ref(),
-                    /*args.ref_C.non_const_ref(),///Yufan: C is not necessary here*/
-                    args.ref_D,
+                    args.ref_C,
                     args.epilogue,
                     static_cast<int *>(workspace)
             };
             return Status::kSuccess;
         }
+
         /// Runs the kernel using initialized state.
         Status run(cudaStream_t stream = nullptr) {
             ThreadblockSwizzle threadblock_swizzle;
 
             dim3 grid = threadblock_swizzle.get_grid_shape(params_.grid_tiled_shape);
-            dim3 block(GemmKernel::kThreadCount, 1, 1);
+            dim3 block(ConvKernel::kThreadCount, 1, 1);
             ///Yufan: print launch configuration
             printf("grid dim %d, %d, %d \n", params_.grid_tiled_shape.n(), params_.grid_tiled_shape.m(), params_.grid_tiled_shape.k());
-            printf("block dim %d, %d, %d \n", GemmKernel::kThreadCount, 1, 1);
+            printf("block dim %d, %d, %d \n", ConvKernel::kThreadCount, 1, 1);
 
             cudaError_t result;
 
-            int smem_size = int(sizeof(typename GemmKernel::SharedStorage));
+            int smem_size = int(sizeof(typename ConvKernel::SharedStorage));
             if (smem_size >= (48 << 10)) {  ///Yufan: Why 48K for Smem?
-                result = cudaFuncSetAttribute(Kernel<GemmKernel>,
+                result = cudaFuncSetAttribute(Kernel<ConvKernel>,
                                               cudaFuncAttributeMaxDynamicSharedMemorySize,
                                               smem_size);
 
@@ -220,7 +219,7 @@ namespace device {
                 }
 
                 result = cudaFuncSetAttribute(
-                        Kernel<GemmKernel>,
+                        Kernel<ConvKernel>,
                         cudaFuncAttributePreferredSharedMemoryCarveout, 100);
 
                 if (result != cudaSuccess) {
@@ -228,7 +227,7 @@ namespace device {
                 }
             }
 
-            cutlass::Kernel<GemmKernel><<<grid, block, smem_size, stream>>>(params_);
+            cutlass::Kernel<ConvKernel><<<grid, block, smem_size, stream>>>(params_);
             result = cudaGetLastError();
 
             return result == cudaSuccess ? Status::kSuccess : Status::kErrorInternal;

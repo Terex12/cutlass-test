@@ -13,6 +13,12 @@
 #include "cutlass/conv/conv.h"
 #include "cutlass/epilogue/thread/linear_combination.h"
 #include "cutlass/epilogue/thread/linear_combination_clamp.h"
+
+#define Tx 4
+#define Ty 4
+#define Tf 4
+#define Tn 1
+
 namespace cutlass {
 namespace conv {
 namespace device {
@@ -33,8 +39,8 @@ namespace device {
 
         static int const kAlignmentA = 1;
         static int const kAlignmentB = 1;
-        //using ThreadblockShape = GemmShape<128, 128, 8>;
-        using ThreadblockShape = GemmShape<64, 64, 8>;
+        using ThreadblockShape = GemmShape<Tx*Ty, Tf*Tn, 8>;
+
         using WarpShape = GemmShape<32, 64, 8>;
         using InstructionShape = GemmShape<1, 1, 1>;
         static int const kStages = 2;

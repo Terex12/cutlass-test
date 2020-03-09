@@ -67,7 +67,7 @@ namespace kernel {
             bool IsBetaZero = false>
     struct DefaultConv;
     
-/// Partial specialization for SIMT
+/// Partial specialization for SIMT from device/conv.h line 105
     template <
             /// Element type for A matrix operand
             typename ElementA,
@@ -131,7 +131,7 @@ namespace kernel {
                         ElementAccumulator,
                         layout::RowMajor,
                         arch::OpClassSimt,
-                        arch::Sm50,
+                        arch::Sm60,
                         ThreadblockShape,
                         WarpShape,
                         GemmShape<1, 1, 1>,
@@ -150,6 +150,7 @@ namespace kernel {
                 >::Epilogue;
             
                 /// Define the kernel-level GEMM operator.
+                ///specialize kernel/conv.h
                 using ConvKernel = kernel::Conv<Mma, Epilogue, ThreadblockSwizzle, SplitKSerial>;
             };
 }
